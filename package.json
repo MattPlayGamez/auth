@@ -1,0 +1,22 @@
+{
+  "name": "@mattplaygamez/auth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MattPlayGamez/auth.git"
+  },
+  "author": "MattPlayGamez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MattPlayGamez/auth/issues"
+  },
+  "homepage": "https://github.com/MattPlayGamez/auth#readme",
+  "dependencies": {
+    "bcrypt": "^5.0.1"
+  }
+}
