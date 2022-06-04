@@ -5,26 +5,30 @@ class Authenticator {
     }
     async register(email, password) {
         const bcrypt = require('bcrypt')
+        const { nanoid } = require('nanoid')
+        const id = nanoid(15)
         this.email = email;
         this.password = password;
         const hashedPassword = await bcrypt.hash(password, 12)
-        const user = { email: email, password: hashedPassword };
+        const user = { id: id, email: email, password: hashedPassword };
         this.users.push(user);
+        // console.log(this.users)
+        return user
     }
 
     login(email, password) {
         const bcrypt = require('bcrypt')
         this.email = email;
         this.password = password;
-        const user = this.users.find(user => user.email === email)
-        if (!user) return console.log('Didn\'t found the email')
-        if (!bcrypt.compareSync(password, user.password)) return console.log('Password isn\'t right')
-        return true
+        const account = this.users.find(user => email === user.email)
+        if(account == null) return 'Nothing Found'
+        if (email !== account.email) return 'invalid email'
+        if (!bcrypt.compareSync(password, account.password)) return 'invalid password'
+        return account
     };
     all() {
-        console.log(this.users);
+        return this.users
     }
-
 };
 
 
