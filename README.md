@@ -39,7 +39,7 @@ npm install bcrypt jsonwebtoken uuid speakeasy qrcode
 ```
 
 ## Usage
-First, require the `@mattplaygamez/auth` class and configure it:
+First, import the `@mattplaygamez/auth` class and configure it:
 
 ### Register a user
 To register a new user, create a user object and pass it to the register method.
