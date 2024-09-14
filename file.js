@@ -1,18 +1,75 @@
+// Local file is not written to disk
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
+const fs = require('fs');
+const crypto = require('crypto');
+
+const algorithm = 'aes-256-ctr';
+
+
+
+// Helper functions
+function encrypt(text, password) {
+    const salt = crypto.randomBytes(16);
+    const key = crypto.scryptSync(password, salt, 32);
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
+    let crypted = cipher.update(text, 'utf8', 'hex');
+    crypted += cipher.final('hex');
+    return salt.toString('hex') + iv.toString('hex') + crypted;
+}
+
+function decrypt(encryptedText, password) {
+    const salt = Buffer.from(encryptedText.slice(0, 32), 'hex');
+    const iv = Buffer.from(encryptedText.slice(32, 64), 'hex');
+    const key = crypto.scryptSync(password, salt, 32);
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    let dec = decipher.update(encryptedText.slice(64), 'hex', 'utf8');
+    dec += decipher.final('utf8');
+    return dec;
+}
+
+function saveUsersToFile(users, filePath, password) {
+    const data = JSON.stringify(users);
+    const encryptedData = encrypt(data, password);
+    fs.writeFileSync(filePath, encryptedData, 'utf8');
+}
+
+function loadUsersFromFile(filePath, password) {
+    if (!fs.existsSync(filePath)) return [];
+    const encryptedData = fs.readFileSync(filePath, 'utf8');
+    const data = decrypt(encryptedData, password);
+    return JSON.parse(data);
+}
+
+// Load users from file on startup
 
 class Authenticator {
-    constructor(QR_LABEL, salt, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, userObject) {
+    constructor(QR_LABEL, salt, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, DB_FILE_PATH, DB_PASSWORD) {
         this.QR_LABEL = QR_LABEL;
         this.salt = salt;
-        this.users = userObject;
         this.JWT_SECRET_KEY = JWT_SECRET_KEY;
         this.JWT_OPTIONS = JWT_OPTIONS;
         this.maxLoginAttempts = maxLoginAttempts - 2;
+        this.users = loadUsersFromFile(DB_FILE_PATH, DB_PASSWORD);
+        this.DB_FILE_PATH = DB_FILE_PATH
+        this.DB_PASSWORD = DB_PASSWORD
+
+        // Override methods to update file when users array changes
+        const originalPush = this.users.push;
+        this.users.push = (...args) => {
+            const result = originalPush.apply(this.users, args);
+            console.log("database changed")
+            saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+            return result;
+        };
+
     }
+
+
 
     async register(userObject) {
         if (!userObject.loginAttempts) userObject.loginAttempts = 0
@@ -29,7 +86,7 @@ class Authenticator {
                     encoding: 'base32'
                 });
                 const qrCode = await QRCode.toDataURL(otpauth_url);
-                userObject.SECRET2FA = secret.base32;
+                userObject.secret2FA = secret.base32;
                 returnedUser.qrCode = qrCode;
             }
             returnedUser.password = hash;
@@ -66,7 +123,7 @@ class Authenticator {
 
 
                     const verified = speakeasy.totp.verify({
-                        secret: user.SECRET2FA,
+                        secret: user.secret2FA,
                         encoding: 'base32',
                         token: twoFactorCode, // Verwijder Number()
                         window: 2 // Sta 2 tijdstippen toe voor en na de huidige tijd
@@ -93,6 +150,18 @@ class Authenticator {
     async verifyToken(token) {
         return jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)
     }
+    async verify2FA(userId, twofactorcode) {
+        let user = this.users.find(user => user.id === userId)
+        if (!user) return null
+        const verified = speakeasy.totp.verify({
+            secret: user.secret2FA,
+            encoding: 'base32',
+            token: twofactorcode,
+            window: 2 // Sta 2 tijdstippen toe voor en na de huidige tijd
+        });
+        return verified;
+
+    }
     async resetPassword(userId, newPassword) {
         const user = this.users.find(u => u.id === userId);
         if (!user) return null;
@@ -102,6 +171,8 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].password = user.password;
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+
         return user;
     }
     async changeLoginAttempts(userId, attempts) {
@@ -111,6 +182,7 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].loginAttempts = attempts;
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
     async lockUser(userId) {
@@ -120,6 +192,7 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].locked = true;
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
     async unlockUser(userId) {
@@ -132,6 +205,7 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].locked = false;
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
     async remove2FA(userId) {
@@ -141,11 +215,12 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].wants2FA = false;
             user.wants2FA = false
-            this.users[userIndex].SECRET2FA = "";
-            user.SECRET2FA = false
+            this.users[userIndex].secret2FA = "";
+            user.secret2FA = false
             this.users[userIndex].qrCode = "";
             user.qrCode = false
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
     async add2FA(userId) {
@@ -159,15 +234,16 @@ class Authenticator {
             encoding: 'base32'
         });
         const qrCode = await QRCode.toDataURL(otpauth_url);
-        userObject.SECRET2FA = secret.base32;
+        userObject.secret2FA = secret.base32;
         returnedUser.qrCode = qrCode;
         if (userIndex !== -1) {
             this.users[userIndex].wants2FA = true;
             user.wants2FA = true
-            this.users[userIndex].SECRET2FA = secret;
-            user.SECRET2FA = secret
+            this.users[userIndex].secret2FA = secret;
+            user.secret2FA = secret
             user.qrCode = otpauth_url
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
     async removeUser(userId) {
@@ -177,9 +253,15 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users.splice(userIndex, 1);
         }
+        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
-
 }
+
+
+
+
+
+
 
 module.exports = Authenticator

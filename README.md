@@ -1,138 +1,139 @@
-# Authenticator Library
+# @mattplaygamez/auth
 
-A Node.js-based authentication library that provides user registration, login, password management, and Two-Factor Authentication (2FA) support using bcrypt for hashing, JWT for tokens, and speakeasy/QRCode for 2FA implementation.
-
-## Table of Contents
-
-- [Authenticator Library](#authenticator-library)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Features](#features)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Register a user](#register-a-user)
-    - [Login](#login)
-    - [Password Reset](#password-reset)
-    - [Two-Factor Authentication (2FA)](#two-factor-authentication-2fa)
-    - [Token verification](#token-verification)
-    - [User Management](#user-management)
-  - [Configuration](#configuration)
-  - [Dependencies](#dependencies)
-
-## Introduction
-
-The `Authenticator` class handles the core authentication and authorization process for applications. It supports user registration, login with password verification, optional Two-Factor Authentication (2FA), and token-based session management.
+A versatile and secure authentication module for Node.js applications.
 
 ## Features
 
-- **Password Hashing**: Secure password storage using bcrypt.
-- **JWT Authentication**: Token-based session handling using JSON Web Tokens.
-- **Two-Factor Authentication (2FA)**: Optional support for time-based OTPs using speakeasy and QR codes.
-- **Login Attempts Lock**: Automatically lock a user after a configurable number of failed login attempts.
-- **User Management**: Retrieve, lock, unlock, and manage users.
-- **Remove User**: Remove a user from the system.
+- Support for multiple storage methods: MongoDB, encrypted file, or in-memory
+- User registration and login
+- Password hashing with bcrypt
+- JWT token verification
+- Two-factor authentication (2FA) with QR codes
+- Login attempt limiting and user locking
+- Password reset and 2FA management
 
 ## Installation
 
+Install the module via npm:
+
 ```bash
-npm install bcrypt jsonwebtoken uuid speakeasy qrcode
+npm install @mattplaygamez/auth
 ```
 
 ## Usage
-First, import the `@mattplaygamez/auth` class and configure it:
 
-### Register a user
-To register a new user, create a user object and pass it to the register method.
-```javascript
-const Authenticator = require('@mattplaygamez/auth');
-````
+Import the desired version of the authenticator:
 
 ```javascript
-const userObject = {
-  email: 'user@example.com',
-  password: 'yourpassword',
-  wants2FA: true
-};
+// For MongoDB support
+const Authenticator = require('@mattplaygamez/auth/mongodb');
+// For encrypted file storage
+const Authenticator = require('@mattplaygamez/auth/file');
+// For in-memory storage
+const Authenticator = require('@mattplaygamez/auth/memory');
 
-const auth = new Authenticator('YourAppLabel', 10, 'your_jwt_secret', { expiresIn: '1h' }, 5, []);
-const newUser = await auth.register(userObject);
-console.log(newUser);
-```
-If the user opts for 2FA (wants2FA: true), a QR code will be generated.
-
-### Login
-To log in, provide the email, password, and 2FA code (if enabled). A JWT token is returned on successful login.
-```javascript
-const email = 'user@example.com';
-const password = 'yourpassword';
-const twoFactorCode = '123456';  // Only needed if 2FA is enabled, otherwise type null
-
-const user = await auth.login(email, password, twoFactorCode);
-// OR
-const user = await auth.login(email, password, null); // No 2FA
-console.log(user.jwt_token);  // JWT token is returned here
 
 ```
-### Password Reset
-You can reset the user's password by calling the resetPassword method:
-```javascript
-await auth.resetPassword(userId, 'newPassword');
-```
-### Two-Factor Authentication (2FA)
-- **Add 2FA**: You can add 2FA for a user after registration or while registering:
+If u use MongoDB, you NEED to make a schema
 
 ```javascript
-await auth.add2FA(userId);
+const DB_SCHEMA = {
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    loginAttempts: { type: Number, default: 0 },
+    locked: { type: Boolean, default: false },
+    wants2FA: { type: Boolean, default: false },
+    secret2FA: String
+}
 ```
-OR
-```javascript
-await auth.register({
-  email: 'user@example.com',
-  password: 'yourpassword',
-  wants2FA: true // If the user doesn't need/want 2FA, then don't include this property or set it to false
-});
-```
--  **Remove 2FA**: To remove 2FA for a user:
-```javascript
-await auth.remove2FA(userId);   
-```
-### Token verification
-You can verify tokens using the `verifyToken` method:
-```javascript
-const decoded = await auth.verifyToken(token);
-console.log(decoded);
-```
-### User Management
-  - **Get User by ID**: Retrieve user information based on their ID.
-  ```javascript
-  const userInfo = auth.getInfoFromUser(userId);
-  ```
-  - **Lock/Unlock User**: Lock or unlock a user after failed login attempts:
-  ```javascript
-  await auth.lockUser(userId);
-  await auth.unlockUser(userId);
-  ```
-  - **Remove A User**: Remove a user based on their ID
-  ```javascript
-  await auth.removeUser(userId)
-  ```
-## Configuration
 
-The `Authenticator` constructor requires several parameters to customize its behavior:
+Initialize the authenticator with the required parameters:
+
 ```javascript
-new Authenticator(QR_LABEL, salt, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, userObject);
+const auth = new Authenticator(
+QR_LABEL,
+SALT,
+JWT_SECRET_KEY,
+JWT_OPTIONS,
+MAX_LOGIN_ATTEMPTS,
+userObject // Only for memory authentication
+DB_CONNECTION_STRING, //for MONGODB or DB_FILE_PATH for file storage
+DB_SCHEMA, // for MONGODB schema  
+DB_PASSWORD // only for file storage
+);
 ```
-- QR_LABEL: Label used for 2FA QR codes.
-- salt: Salt rounds for bcrypt hashing.
-- JWT_SECRET_KEY: Secret key for JWT tokens.
-- JWT_OPTIONS: Options for JWT token configuration (e.g., expiration time).
-- maxLoginAttempts: Maximum number of login attempts before the account is locked.
-- userObject: An array or object to store users.
 
-## Dependencies
 
-- bcrypt: Used to securely hash and compare passwords.
-- jsonwebtoken: Handles token creation and verification.
-- uuid: Generates unique IDs for users.
-- speakeasy: Provides 2FA support using time-based one-time passwords (TOTP).
-- qrcode: Generates QR codes for 2FA setup.
+## API
+
+### `register(userObject)`
+Registers a new user.
+
+### `login(email, password, twoFactorCode)`
+Logs in a user.
+
+### `getInfoFromUser(userId)`
+Retrieves user information.
+
+### `verifyToken(token)`
+Verifies a JWT token.
+
+### `verify2FA(userId, twoFactorCode)`
+Verifies a 2FA code.
+
+### `resetPassword(userId, newPassword)`
+Resets a user's password.
+
+### `changeLoginAttempts(userId, attempts)`
+Changes the number of login attempts for a user.
+
+### `lockUser(userId)`
+Locks a user account.
+
+### `unlockUser(userId)`
+Unlocks a user account.
+
+### `remove2FA(userId)`
+Removes 2FA for a user.
+
+### `add2FA(userId)`
+Adds 2FA for a user.
+
+### `removeUser(userId)`
+Removes a user.
+
+## Example
+
+```javascript
+const Authenticator = require('@mattplaygamez/auth/file');
+const auth = new Authenticator(
+'MyApp',
+10,
+'my_secret_key',
+{ expiresIn: '1h' },
+5,
+'./users.db',
+'db_password'
+);
+// Register a new user
+auth.register({
+email: 'user@example.com',
+password: 'secure_password',
+wants2FA: true
+}).then(result => console.log(result));
+// Log in a user
+auth.login('user@example.com', 'secure_password', '123456')
+.then(result => console.log(result));
+```
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## Support
+
+For questions or support, please open an issue on the GitHub repository.
