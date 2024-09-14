@@ -1,0 +1,17 @@
+{
+  "name": "supersecret",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node test.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@mattplaygamez/auth": "file:./mattplaygamez-auth-3.0.0.tgz"
+  }
+}

@@ -34,7 +34,7 @@ const Authenticator = require('@mattplaygamez/auth/memory');
 
 
 ```
-If u use MongoDB, you NEED to make a schema
+If you use MongoDB, you NEED to make a schema
 
 ```javascript
 const DB_SCHEMA = {
@@ -69,7 +69,7 @@ DB_PASSWORD // only for file storage
 ### `register(userObject)`
 Registers a new user.
 
-### `login(email, password, twoFactorCode)`
+### `login(email, password, twoFactorCode || null)`
 Logs in a user.
 
 ### `getInfoFromUser(userId)`
@@ -103,13 +103,41 @@ Adds 2FA for a user.
 Removes a user.
 
 ## Example
+Encrypted File
+```javascript
+import Authenticator from '@mattplaygamez/auth/file.js';
+const auth = new Authenticator(
+    'MyApp',
+    12,
+    'my_secret_key',
+    { expiresIn: '1h' },
+    5,
+    './users.db',
+    'db_password'
+);
+
+```
+Memory storage (ephemeral)
+
+```javascript
+import Authenticator from '@mattplaygamez/auth/memory'
+let USERS = [] // If you want to have existing users, add here
+const auth = new Authenticator(
+    'MyApp',
+    12,
+    'your_jwt_secret',
+    { expiresIn: '1h' },
+    5,
+    USERS
+);
+```
 
 ```javascript
 const Authenticator = require('@mattplaygamez/auth/file');
 const auth = new Authenticator(
 'MyApp',
-10,
-'my_secret_key',
+12,
+'your_jwt_secret',
 { expiresIn: '1h' },
 5,
 './users.db',
@@ -126,9 +154,28 @@ auth.login('user@example.com', 'secure_password', '123456')
 .then(result => console.log(result));
 ```
 
+
+```javascript
+import Authenticator from "../mongodb.js";
+
+let DB_SCHEMA = {
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    loginAttempts: { type: Number, default: 0 },
+    locked: { type: Boolean, default: false },
+    wants2FA: { type: Boolean, default: false },
+    secret2FA: String
+}
+
+
+let connectionString = "CONNECTIONSTRING" // The connection string for MongoDB
+const auth = new Authenticator('MyApp', 12, 'your_jwt_secret', { expiresIn: '1 ' }, 5, connectionString, DB_SCHEMA);
+
+```
+
 ## License
 
-MIT
+Mozilla Public License, v. 2.0
 
 ## Contributing
 
