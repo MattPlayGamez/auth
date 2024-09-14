@@ -56,7 +56,7 @@ SALT,
 JWT_SECRET_KEY,
 JWT_OPTIONS,
 MAX_LOGIN_ATTEMPTS,
-userObject // Only for memory authentication
+USER_OBJECT // Only for memory authentication
 DB_CONNECTION_STRING, //for MONGODB or DB_FILE_PATH for file storage
 DB_SCHEMA, // for MONGODB schema  
 DB_PASSWORD // only for file storage
