@@ -80,6 +80,7 @@ Verifies a JWT token.
 
 ### `verify2FA(userId, twoFactorCode)`
 Verifies a 2FA code.
+Useful for reverifying user identity when accessing sensitive functions
 
 ### `resetPassword(userId, newPassword)`
 Resets a user's password.
