@@ -105,10 +105,10 @@ Adds 2FA for a user.
 ### `removeUser(userId)`
 Removes a user.
 
-## `registerEmailSignin(email)`
+### `registerEmailSignin(email)`
 Generates a OTP so the user can use passwordless login, using their email
 
-## `verifyEmailSignin(emailCode)`
+### `verifyEmailSignin(emailCode)`
 Verifies the OTP from the user and responds with a valid jwt_token
 
 ## Example
