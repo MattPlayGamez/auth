@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const mongoose = require('mongoose')
+const { nanoid } = require('nanoid');
 
 
 
@@ -71,7 +72,7 @@ class Authenticator {
                 console.log(`${user.loginAttempts} >= ${this.maxLoginAttempts}`)
 
                 if (user.loginAttempts >= this.maxLoginAttempts) {
-                    
+
                     this.lockUser(user._id);
                 } else {
                     console.log("changing login attempts")
@@ -103,7 +104,7 @@ class Authenticator {
                     if (!verified) return "Invalid 2FA code";
 
                 }
-                const jwt_token = jwt.sign({ _id: user._id}, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+                const jwt_token = jwt.sign({ _id: user._id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
                 this.changeLoginAttempts(user._id, 0)
 
                 return { ...user.toObject(), jwt_token };
@@ -112,16 +113,34 @@ class Authenticator {
             throw err;
         }
     }
+    async registerEmailSignin(email) {
+        let emailCode = nanoid(20)
+        try {
+            await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
+            return emailCode;
 
+        } catch (error) {
+            console.error(error)
+        }
+    }
+    async verifyEmailSignin(emailCode) {
+        if (emailCode === null) return null
+
+        const user = await this.User.findOne({ emailCode: emailCode });
+        if (!user) return null;
+        await this.User.findOneAndUpdate({ emailCode: emailCode }, { emailCode: null })
+        const jwt_token = jwt.sign({ id: user.id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        return { ...user, jwt_token };
+    }
     async getInfoFromUser(userId) {
-        return await this.User.findOne({ _id: userId});
+        return await this.User.findOne({ _id: userId });
     }
 
     async verifyToken(token) {
         return jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)
     }
     async verify2FA(userId, twofactorcode) {
-        let user = await this.User.findOne({ _id: userId})
+        let user = await this.User.findOne({ _id: userId })
         if (!user) return null
         const verified = speakeasy.totp.verify({
             secret: user.secret2FA,
@@ -134,26 +153,26 @@ class Authenticator {
     }
     async resetPassword(userId, newPassword) {
         const hash = await bcrypt.hash(newPassword, this.salt);
-        return await this.User.findOneAndUpdate({ _id: userId}, { password: hash }, { new: true });
+        return await this.User.findOneAndUpdate({ _id: userId }, { password: hash }, { new: true });
     }
     async changeLoginAttempts(userId, attempts) {
-        return await this.User.findOneAndUpdate({ _id: userId}, { loginAttempts: attempts }, { new: true });
+        return await this.User.findOneAndUpdate({ _id: userId }, { loginAttempts: attempts }, { new: true });
     }
     async lockUser(userId) {
-        return await this.User.findOneAndUpdate({ _id: userId}, { locked: true }, { new: true });
+        return await this.User.findOneAndUpdate({ _id: userId }, { locked: true }, { new: true });
     }
     async unlockUser(userId) {
-        return await this.User.findOneAndUpdate({ _id: userId}, { locked: false }, { new: true });
+        return await this.User.findOneAndUpdate({ _id: userId }, { locked: false }, { new: true });
     }
     async remove2FA(userId) {
         return await this.User.findOneAndUpdate(
-            { _id: userId},
+            { _id: userId },
             { wants2FA: false, secret2FA: "", qrCode: "" },
             { new: true }
         );
     }
     async add2FA(userId) {
-        const user = await this.User.findOne({ _id: userId});
+        const user = await this.User.findOne({ _id: userId });
         if (!user) return null;
 
         const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
@@ -165,13 +184,13 @@ class Authenticator {
         const qrCode = await QRCode.toDataURL(otpauth_url);
 
         return await this.User.findOneAndUpdate(
-            { _id: userId},
+            { _id: userId },
             { wants2FA: true, secret2FA: secret.base32, qrCode },
             { new: true }
         );
     }
     async removeUser(userId) {
-        return await this.User.findOneAndDelete({ _id: userId});
+        return await this.User.findOneAndDelete({ _id: userId });
     }
 
 }

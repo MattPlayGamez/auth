@@ -1,6 +1,5 @@
 node_modules
 devURL
-test/test.js
-test
-supersecret/
-supersecret/*
+test/**
+supersecret/**
+

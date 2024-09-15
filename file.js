@@ -6,6 +6,7 @@ const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const fs = require('fs');
 const crypto = require('crypto');
+const { nanoid } = require('nanoid');
 
 const algorithm = 'aes-256-ctr';
 
@@ -140,6 +141,32 @@ class Authenticator {
         } catch (err) {
             throw err;
         }
+    }
+    async registerEmailSignin(email) {
+        let emailCode = nanoid(20)
+        try {
+            const user = this.users.find(u => u.email === email);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u.email === email);
+            if (userIndex !== -1) {
+                this.users[userIndex].emailCode = emailCode;
+            }
+            return emailCode;
+
+        } catch (error) {
+            console.error(error)
+        }
+    }
+    async verifyEmailSignin(emailCode) {
+        if (emailCode === null) return null
+        const user = await this.users.find(user => user.emailCode == emailCode);
+        if (!user) return null;
+        const userIndex = this.users.findIndex(u => u.emailCode === emailCode);
+        if (userIndex !== -1) {
+            this.users[userIndex].emailCode = null;
+        }
+        const jwt_token = jwt.sign({ id: user.id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        return { ...user, jwt_token };
     }
     getInfoFromUser(userId) {
         const user = this.users.find(u => u.id === userId);

@@ -34,7 +34,7 @@ const Authenticator = require('@mattplaygamez/auth/memory');
 
 
 ```
-If you use MongoDB, you NEED to make a schema
+If you use MongoDB, you NEED to make a schema with these values as a minimum, if you want you can add as many this as you want. (ex. phone number, address)
 
 ```javascript
 const DB_SCHEMA = {
@@ -42,6 +42,7 @@ const DB_SCHEMA = {
     password: { type: String, required: true },
     loginAttempts: { type: Number, default: 0 },
     locked: { type: Boolean, default: false },
+    emailCode: { type: String, default: "", required: false, unique: true },
     wants2FA: { type: Boolean, default: false },
     secret2FA: String
 }
@@ -103,6 +104,12 @@ Adds 2FA for a user.
 ### `removeUser(userId)`
 Removes a user.
 
+## `registerEmailSignin(email)`
+Generates a OTP so the user can use passwordless login, using their email
+
+## `verifyEmailSignin(emailCode)`
+Verifies the OTP from the user and responds with a valid jwt_token
+
 ## Example
 Encrypted File
 ```javascript
@@ -145,14 +152,20 @@ const auth = new Authenticator(
 'db_password'
 );
 // Register a new user
-auth.register({
-email: 'user@example.com',
-password: 'secure_password',
-wants2FA: true
-}).then(result => console.log(result));
-// Log in a user
-auth.login('user@example.com', 'secure_password', '123456')
-.then(result => console.log(result));
+const registerResult = await auth.register({
+    email: 'user@example.com',
+    password: 'secure_password',
+    wants2FA: true
+});
+console.log(registerResult);
+
+const loginResult = await auth.login('user@example.com', 'secure_password', '123456');
+console.log(loginResult);
+// OR   
+const token = await auth.registerEmailSignin('user@example.com'); // Sent token to users email or phone number
+
+token = await auth.verifyEmailSignin(emailCode) // emailCode is that code that the user sends back, can be because a link he clicked or just when he filled the code in
+console.log(token.jwt_token); // It responds with a JSON WEB TOKEN
 ```
 
 
