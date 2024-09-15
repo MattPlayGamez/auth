@@ -34,7 +34,8 @@ const Authenticator = require('@mattplaygamez/auth/memory');
 
 
 ```
-If you use MongoDB, you NEED to make a schema with these values as a minimum, if you want you can add as many this as you want. (ex. phone number, address)
+If you use MongoDB, you NEED to make a schema with these values as a minimum.
+You can add as many fields as you need. (e.g., phone number, address)
 
 ```javascript
 const DB_SCHEMA = {
