@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
-const { nanoid } = require('nanoid');
+const { nanoid } = require('nanoid'); 
 
 class Authenticator {
     constructor(QR_LABEL, salt, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, userObject) {
