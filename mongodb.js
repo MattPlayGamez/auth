@@ -30,7 +30,8 @@ class Authenticator {
             const hash = await bcrypt.hash(userObject.password, this.salt);
             let newUser = new this.User({
                 ...userObject,
-                password: hash
+                password: hash,
+                jwt_version: 1
             });
 
             if (userObject.wants2FA) {
@@ -104,7 +105,8 @@ class Authenticator {
                     if (!verified) return "Invalid 2FA code";
 
                 }
-                const jwt_token = jwt.sign({ _id: user._id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+                const jwt_token = jwt.sign({ id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+
                 this.changeLoginAttempts(user._id, 0)
 
                 return { ...user.toObject(), jwt_token };
@@ -129,7 +131,7 @@ class Authenticator {
         const user = await this.User.findOne({ emailCode: emailCode });
         if (!user) return null;
         await this.User.findOneAndUpdate({ emailCode: emailCode }, { emailCode: null })
-        const jwt_token = jwt.sign({ id: user.id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        const jwt_token = jwt.sign({ id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
         return { ...user, jwt_token };
     }
     async getInfoFromUser(userId) {
@@ -137,7 +139,17 @@ class Authenticator {
     }
 
     async verifyToken(token) {
-        return jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)
+        if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
+            let jwt_token = jwt.decode(token);
+            console.log(jwt_token)
+            let user = await this.getInfoFromUser(jwt_token.id)
+
+            if (user.jwt_version == jwt_token.version) {
+                return true
+            } else {
+                return false
+            }
+        }
     }
     async verify2FA(userId, twofactorcode) {
         let user = await this.User.findOne({ _id: userId })
@@ -152,8 +164,10 @@ class Authenticator {
 
     }
     async resetPassword(userId, newPassword) {
+        this.revokeUserTokens(userId)
         const hash = await bcrypt.hash(newPassword, this.salt);
-        return await this.User.findOneAndUpdate({ _id: userId }, { password: hash }, { new: true });
+        return await this.User.findOneAndUpdate({ _id: userId }, { password: hash }, { new: true })
+
     }
     async changeLoginAttempts(userId, attempts) {
         return await this.User.findOneAndUpdate({ _id: userId }, { loginAttempts: attempts }, { new: true });
@@ -163,6 +177,11 @@ class Authenticator {
     }
     async unlockUser(userId) {
         return await this.User.findOneAndUpdate({ _id: userId }, { locked: false }, { new: true });
+    }
+
+    async revokeUserTokens(userId) {
+        let newVersion = (await this.User.findOne({ _id: userId })).jwt_version + 1
+        return await this.User.findOneAndUpdate({ _id: userId }, { jwt_version: newVersion }, { new: false });
     }
     async remove2FA(userId) {
         return await this.User.findOneAndUpdate(
@@ -190,7 +209,12 @@ class Authenticator {
         );
     }
     async removeUser(userId) {
-        return await this.User.findOneAndDelete({ _id: userId });
+        try {
+        await this.User.findOneAndDelete({ _id: userId });
+            return "User has been removed"
+        } catch (error) {
+            return `User with ID ${userId} couldn't be removed`
+        }
     }
 
 }

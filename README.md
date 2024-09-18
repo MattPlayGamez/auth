@@ -102,15 +102,17 @@ Removes 2FA for a user.
 ### `add2FA(userId)`
 Adds 2FA for a user.
 
-### `removeUser(userId)`
-Removes a user.
-
 ### `registerEmailSignin(email)`
 Generates a OTP so the user can use passwordless login, using their email
 
 ### `verifyEmailSignin(emailCode)`
 Verifies the OTP from the user and responds with a valid jwt_token
 
+### `revokeUserTokens(userId)`
+Revokes all existing JWT token for that user
+
+### `removeUser(userId)`
+Removes a user.
 ## Example
 Encrypted File
 ```javascript
@@ -163,10 +165,12 @@ console.log(registerResult);
 const loginResult = await auth.login('user@example.com', 'secure_password', '123456');
 console.log(loginResult);
 // OR   
-const token = await auth.registerEmailSignin('user@example.com'); // Sent token to users email or phone number
+const emailCode = await auth.registerEmailSignin('user@example.com'); // Sent code to users email or phone number
 
 token = await auth.verifyEmailSignin(emailCode) // emailCode is that code that the user sends back, can be because a link he clicked or just when he filled the code in
 console.log(token.jwt_token); // It responds with a JSON WEB TOKEN
+
+await auth.revokeUserTokens(userId)
 ```
 
 

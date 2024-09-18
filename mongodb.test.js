@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 
+console.log(process.env.CONNECTION_STRING)
 
 // Mock the user schema and Mongoose model
 const userSchema = new mongoose.Schema({
@@ -26,7 +27,7 @@ const mockUser = {
 
 
 // MongoDB connection string (mocked for tests)
-const MONGODB_CONNECTION_STRING = '';
+const MONGODB_CONNECTION_STRING = process.env.MONGODB_CONNECTION_STRING;
 
 
 

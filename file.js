@@ -92,6 +92,7 @@ class Authenticator {
             }
             returnedUser.password = hash;
             userObject.password = hash;
+            userObject.jwt_version = 1
 
             if (this.users.find(u => u.email === userObject.email)) return "User already exists"
             this.users.push(userObject);
@@ -133,7 +134,7 @@ class Authenticator {
                     if (!verified) return "Invalid 2FA code";
 
                 }
-                const jwt_token = jwt.sign({ id: user.id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+                const jwt_token = jwt.sign({ id: user.id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
                 this.changeLoginAttempts(user.id, 0)
 
                 return { ...user, jwt_token };
@@ -165,7 +166,7 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].emailCode = null;
         }
-        const jwt_token = jwt.sign({ id: user.id }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        const jwt_token = jwt.sign({ id: user.id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
         return { ...user, jwt_token };
     }
     getInfoFromUser(userId) {
@@ -174,8 +175,14 @@ class Authenticator {
         return user
     }
 
+    //jwt_version
     async verifyToken(token) {
-        return jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)
+        if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
+            let jwt_token = jwt.decode(token);
+            console.log(jwt_token)
+            console.log(this.getInfoFromUser(jwt_token.id).jwt_version)
+            return (this.getInfoFromUser(jwt_token.id).jwt_version == jwt_token.version);
+        }
     }
     async verify2FA(userId, twofactorcode) {
         let user = this.users.find(user => user.id === userId)
@@ -197,6 +204,7 @@ class Authenticator {
         const userIndex = this.users.findIndex(u => u.id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].password = user.password;
+            this.users[userIndex].jwt_version += 1
         }
         saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
 
@@ -235,6 +243,15 @@ class Authenticator {
         saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
         return user;
     }
+
+    async revokeUserTokens(userId) {
+        const userIndex = this.users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            this.users[userIndex].jwt_version += 1;
+        }
+
+    }
+
     async remove2FA(userId) {
         const user = this.users.find(u => u.id === userId);
         if (!user) return null;
@@ -274,14 +291,20 @@ class Authenticator {
         return user;
     }
     async removeUser(userId) {
-        const user = this.users.find(u => u.id === userId);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.id === userId);
-        if (userIndex !== -1) {
-            this.users.splice(userIndex, 1);
+        try {
+            const user = this.users.find(u => u.id === userId);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u.id === userId);
+            if (userIndex !== -1) {
+                this.users.splice(userIndex, 1);
+            }
+            "User has been removed"
+
+        } catch (error) {
+            return `User with ID ${userId} couldn't be removed`
+
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
-        return user;
+
     }
 }
 
