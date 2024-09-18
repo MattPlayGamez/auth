@@ -6,7 +6,8 @@ const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const fs = require('fs');
 const crypto = require('crypto');
-const { nanoid } = require('nanoid');
+// const { nanoid } = require('nanoid');
+import { nanoid } from 'nanoid'
 
 const algorithm = 'aes-256-ctr';
 
