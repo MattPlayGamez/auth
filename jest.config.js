@@ -1,12 +1,13 @@
 export default {
-    transform: {},
+    transform: {
+        "^.+\\.js$": "babel-jest",  // Use Babel to transform JavaScript files
+    },
     globals: {
-      'ts-jest': {
-        useESM: true,
-      },
+        'ts-jest': {
+            useESM: true,
+        },
     },
     moduleNameMapper: {
-      '^(\\.{1,2}/.*)\\.js$': '$1',  // Use this if you need to handle file extensions in imports
+        '^(\\.{1,2}/.*)\\.js$': '$1',  // Adjust for file extensions in imports
     },
-  };
-  
+};
