@@ -9,7 +9,7 @@
     "type": "module",
   "scripts": {
     "start": "node test/test.js",
-    "test": "NODE_OPTIONS='$NODE_OPTIONS --experimental-vm-modules' npx jest --forceExit ​"
+    "test": "jest mongodb.test.js --forceExit ​"
   },
   "repository": {
     "type": "git",
