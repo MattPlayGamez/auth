@@ -1,6 +1,6 @@
 require("dotenv/config")
 const mongoose = require('mongoose');
-const Authenticator = require('./mongodb.js'); // Replace with the actual path
+const Authenticator = require('./mongodb.js')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');

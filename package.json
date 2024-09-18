@@ -6,6 +6,7 @@
   "publishConfig": {
     "access": "public"
   },
+    "type": "module",
   "scripts": {
     "start": "node test/test.js",
     "test": "jest mongodb.test.js --forceExit ​"

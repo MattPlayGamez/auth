@@ -5,8 +5,7 @@ const jwt = require('jsonwebtoken')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const mongoose = require('mongoose')
-// const { nanoid } = require('nanoid');
-import { nanoid } from 'nanoid'
+const { nanoid } = require('nanoid');
 
 
 
