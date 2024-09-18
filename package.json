@@ -1,6 +1,6 @@
 {
   "name": "@mattplaygamez/auth",
-  "version": "3.6.1",
+  "version": "3.6.2",
   "description": "A full fledged authentication system, you can initialize it with your own data. Supports password hashing and token generation, auto user locking, DB/file integration + more",
   "main": "memory.js",
   "publishConfig": {
