@@ -1,12 +1,12 @@
 export default {
     transform: {},
-    extensionsToTreatAsEsm: ['.js'],  // Treat .js files as ESM
     globals: {
-        'ts-jest': {
-            useESM: true,
-        },
+      'ts-jest': {
+        useESM: true,
+      },
     },
     moduleNameMapper: {
-        '^(\\.{1,2}/.*)\\.js$': '$1',  // Use this if you have file extensions in imports
+      '^(\\.{1,2}/.*)\\.js$': '$1',  // Use this if you need to handle file extensions in imports
     },
-};
+  };
+  
