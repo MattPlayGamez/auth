@@ -25,6 +25,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
+      - run: npm install
+      - run: npm install jest
       - run: npm test
         env:
           NODE_AUTH_TOKEN: ${{ secrets.MONGODB_CONNECTION_STRING }}
