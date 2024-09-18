@@ -1,13 +1,14 @@
 {
   "name": "@mattplaygamez/auth",
-  "version": "3.5.2",
+  "version": "3.6.0",
   "description": "A full fledged authentication system, you can initialize it with your own data. Supports password hashing and token generation, auto user locking, DB/file integration + more",
   "main": "memory.js",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "test": "node test/test.js"
+    "start": "node test/test.js",
+    "test": "jest mongodb.test.js --forceExit ​"
   },
   "repository": {
     "type": "git",
@@ -21,6 +22,8 @@
   "homepage": "https://github.com/MattPlayGamez/auth#readme",
   "dependencies": {
     "bcrypt": "^5.0.1",
+    "dotenv": "^16.4.5",
+    "jest": "^29.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.2",
     "nanoid": "^3.3.4",
