@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [main, dev]
 env:
-  MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+  MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_STRING }}
 
 jobs:
   test:
