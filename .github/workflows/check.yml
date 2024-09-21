@@ -5,13 +5,16 @@ name: Node.js CI
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: [main, dev]
   pull_request:
-    branches: ["main", "dev"]
+    branches: [main, dev]
+env:
+  MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    # runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
@@ -22,14 +25,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-        env:
-          MONGODB_CONNECTION_STRING: ${{ secrets.mongodb_string }}
-      - run: npm install
-      - run: npm install jest
-      - run: npm test
+
+      - run: npm ci
+      - run: npx jest --forceExit *.test.js
 
   # deploy:
   #   runs-on: ubuntu-latest
