@@ -26,29 +26,29 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
         env:
-          MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+          MONGODB_CONNECTION_STRING: ${{ secrets.mongodb_string }}
       - run: npm install
       - run: npm install jest
       - run: npm test
 
-  deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     id-token: write
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      # Setup Node.js environment
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20.x"
-          registry-url: "https://registry.npmjs.org"
+  #     # Setup Node.js environment
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20.x"
+  #         registry-url: "https://registry.npmjs.org"
 
-      # Install dependencies
-      - run: npm install
+  #     # Install dependencies
+  #     - run: npm install
 
-      # Publish to npm if tests pass
-      - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  #     # Publish to npm if tests pass
+  #     - run: npm publish --provenance --access public
+  #       env:
+  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
