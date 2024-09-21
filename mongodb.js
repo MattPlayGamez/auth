@@ -116,39 +116,56 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = nanoid(20)
+        let emailCode = nanoid(30)
         try {
             await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
-            return emailCode;
+            return { emailCode }
 
         } catch (error) {
             console.error(error)
         }
     }
     async verifyEmailSignin(emailCode) {
-        if (emailCode === null) return null
+        // Check if emailCode is valid and a string
+        if (!emailCode || typeof emailCode !== 'string') return null;
 
-        const user = await this.User.findOne({ emailCode: emailCode });
+        // Query the user based on the emailCode
+        const user = await this.User.findOne({ emailCode });
         if (!user) return null;
-        await this.User.findOneAndUpdate({ emailCode: emailCode }, { emailCode: null })
-        const jwt_token = jwt.sign({ id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
-        return { ...user, jwt_token };
+
+        // Reset emailCode in the user record after successful verification
+        await this.User.findOneAndUpdate({ emailCode }, { emailCode: "" });
+
+        // Generate a new JWT token for the user
+        const jwt_token = jwt.sign(
+            { id: user._id, version: user.jwt_version },
+            this.JWT_SECRET_KEY,
+            this.JWT_OPTIONS
+        );
+
+        // Return user info and the new JWT token
+        return { ...user.toObject(), jwt_token };  // Use .toObject() to avoid returning Mongoose Document
     }
     async getInfoFromUser(userId) {
         return await this.User.findOne({ _id: userId });
     }
 
     async verifyToken(token) {
-        if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
-            let jwt_token = jwt.decode(token);
-            console.log(jwt_token)
-            let user = await this.getInfoFromUser(jwt_token.id)
+        try {
+            if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
+                let jwt_token = jwt.decode(token);
+                console.log(jwt_token)
+                let user = await this.getInfoFromUser(jwt_token.id)
 
-            if (user.jwt_version == jwt_token.version) {
-                return true
-            } else {
-                return false
+                if (user.jwt_version == jwt_token.version) {
+                    return true
+                } else {
+                    return false
+                }
             }
+        } catch (error) {
+            console.log(error)
+
         }
     }
     async verify2FA(userId, twofactorcode) {
@@ -196,7 +213,7 @@ class Authenticator {
 
         const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
         const otpauth_url = speakeasy.otpauthURL({
-            
+
             secret: secret.base32,
             label: this.QR_LABEL,
             encoding: 'base32'
@@ -211,7 +228,7 @@ class Authenticator {
     }
     async removeUser(userId) {
         try {
-        await this.User.findOneAndDelete({ _id: userId });
+            await this.User.findOneAndDelete({ _id: userId });
             return "User has been removed"
         } catch (error) {
             return `User with ID ${userId} couldn't be removed`

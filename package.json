@@ -6,7 +6,8 @@
   "main": "memory.js",
   "scripts": {
     "start": "node test/test.js",
-    "test": "jest --forceExit mongodb.test.js "
+    "test": "jest --forceExit mongodb.test.js ",
+    "pretest": "jest --forceExit memory.test.js"  
   },
   "extensionsToTreatAsEsm": [
     ".js"
