@@ -1,11 +1,8 @@
 require("dotenv/config")
 const mongoose = require('mongoose');
 const Authenticator = require('./mongodb.js')
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
 
-console.log(process.env.CONNECTION_STRING)
 
 // Mock the user schema and Mongoose model
 const userSchema = new mongoose.Schema({
@@ -57,6 +54,11 @@ describe('Authenticator Class Tests', () => {
     expect(jwt.verify(loginResult.jwt_token, 'secretKey123')).toBeTruthy();
   });
 
+  test('Get Info From User', async () => {
+    const info = await authenticator.getInfoFromUser(userID)
+    
+  })
+
   test('Verify JWT Token', async () => {
     const loginResult = await authenticator.login(mockUser.email, mockUser.password);
     const tokenVerification = await authenticator.verifyToken(loginResult.jwt_token);
@@ -86,6 +88,8 @@ describe('Authenticator Class Tests', () => {
     let response = await authenticator.removeUser(userID)
     expect(response.email).toBe()
   });
+
+
 
   afterAll(async () => {
     await authenticator.User.collection.drop();

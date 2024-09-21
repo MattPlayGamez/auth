@@ -196,6 +196,7 @@ class Authenticator {
 
         const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
         const otpauth_url = speakeasy.otpauthURL({
+            
             secret: secret.base32,
             label: this.QR_LABEL,
             encoding: 'base32'
@@ -215,6 +216,9 @@ class Authenticator {
         } catch (error) {
             return `User with ID ${userId} couldn't be removed`
         }
+    }
+    async users() {
+        return await this.User.find()
     }
 
 }

@@ -1,8 +1,9 @@
-export default {
+module.exports = {
     transform: {
-        "^.+\\.js$": "babel-jest",  // Use babel-jest for JavaScript files
+      "^.+\\.js$": "babel-jest",  // Use babel-jest to transform JS files
     },
-    moduleNameMapper: {
-        '^(\\.{1,2}/.*)\\.js$': '$1',  // Handle imports without file extensions
-    },
-};
+    transformIgnorePatterns: [
+      "node_modules/(?!(nanoid)/)",  // Include specific modules for transformation
+    ],
+  };
+  

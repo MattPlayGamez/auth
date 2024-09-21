@@ -1,6 +1,6 @@
 node_modules
 devURL
-test/**
-supersecret/**
+test
+supersecret
 test/test.js
 .env
