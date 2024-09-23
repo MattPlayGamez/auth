@@ -8,7 +8,6 @@ const mongoose = require('mongoose')
 const { nanoid } = require('nanoid');
 
 
-
 // Creëer het gebruikersmodel
 
 class Authenticator {
@@ -20,7 +19,7 @@ class Authenticator {
         this.maxLoginAttempts = maxLoginAttempts;
 
         // Verbind met MongoDB
-        mongoose.connect(MONGODB_CONNECTION_STRING, { useNewUrlParser: true, useUnifiedTopology: true });
+        mongoose.connect(MONGODB_CONNECTION_STRING);
 
         this.User = mongoose.model('User', userSchema)
     }
