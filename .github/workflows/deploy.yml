@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-node@v4
 
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit mongodb.test.js
 
   deploy:
     needs: test

@@ -26,7 +26,8 @@ jobs:
         with:
           node-version: 18.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-ubuntu-node-20:
     runs-on: ubuntu-latest
@@ -45,7 +46,8 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-ubuntu-node-22:
     runs-on: ubuntu-latest
@@ -64,7 +66,8 @@ jobs:
         with:
           node-version: 22.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-windows-node-18:
     runs-on: windows-latest
@@ -83,7 +86,8 @@ jobs:
         with:
           node-version: 18.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-windows-node-20:
     runs-on: windows-latest
@@ -102,7 +106,8 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-windows-node-22:
     runs-on: windows-latest
@@ -121,7 +126,8 @@ jobs:
         with:
           node-version: 22.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-macos-node-18:
     runs-on: macos-latest
@@ -140,7 +146,8 @@ jobs:
         with:
           node-version: 18.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
 
   test-macos-node-20:
     runs-on: macos-latest
@@ -159,8 +166,8 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npx jest --forceExit *.test.js
-
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
   test-macos-node-22:
     runs-on: macos-latest
     needs: test-macos-node-20
@@ -177,5 +184,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-      - run: npm ci
-      - run: npx jest --forceExit *.test.js
+      - run: npx jest --forceExit memory.test.js
+      - run: npx jest --forceExit file.test.js
