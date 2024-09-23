@@ -181,7 +181,7 @@ jobs:
       - run: npx jest --forceExit mongodb.test.js
 
   deploy:
-    needs: test
+    needs: test-macos-node-22
     runs-on: ubuntu-latest
     permissions:
       contents: read
