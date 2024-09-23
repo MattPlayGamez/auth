@@ -1,4 +1,4 @@
-# @mattplaygamez/auth
+# Seamless-auth
 
 A versatile and secure authentication module for Node.js applications.
 
@@ -17,7 +17,7 @@ A versatile and secure authentication module for Node.js applications.
 Install the module via npm:
 
 ```bash
-npm install @mattplaygamez/auth
+npm install seamless-auth
 ```
 
 ## Usage
@@ -26,11 +26,11 @@ Import the desired version of the authenticator:
 
 ```javascript
 // For MongoDB support
-const Authenticator = require('@mattplaygamez/auth/mongodb');
+const Authenticator = require('seamless-auth/mongodb');
 // For encrypted file storage
-const Authenticator = require('@mattplaygamez/auth/file');
+const Authenticator = require('seamless-auth/file');
 // For in-memory storage
-const Authenticator = require('@mattplaygamez/auth/memory');
+const Authenticator = require('seamless-auth/memory');
 
 
 ```
@@ -116,7 +116,7 @@ Removes a user.
 ## Example
 Encrypted File
 ```javascript
-import Authenticator from '@mattplaygamez/auth/file.js';
+import Authenticator from 'seamless-auth/file.js';
 const auth = new Authenticator(
     'MyApp',
     12,
@@ -131,7 +131,7 @@ const auth = new Authenticator(
 Memory storage (ephemeral)
 
 ```javascript
-import Authenticator from '@mattplaygamez/auth/memory'
+import Authenticator from 'seamless-auth/memory'
 let USERS = [] // If you want to have existing users, add here
 const auth = new Authenticator(
     'MyApp',
@@ -144,7 +144,7 @@ const auth = new Authenticator(
 ```
 
 ```javascript
-const Authenticator = require('@mattplaygamez/auth/file');
+const Authenticator = require('seamless-auth/file');
 const auth = new Authenticator(
 'MyApp',
 12,
