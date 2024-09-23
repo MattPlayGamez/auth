@@ -184,5 +184,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit memory.test.js
       - run: npx jest --forceExit file.test.js
