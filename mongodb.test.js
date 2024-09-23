@@ -53,17 +53,17 @@ describe('Authenticator Class Tests', () => {
 
   test('User Registration without 2FA', async () => {
     const result = await authenticator.register(mockUser);
-    expect(result.user.email).toBe(mockUser.email);
-    expect(result.user.jwt_version).toBe(1);
-    expect(result.user.wants2FA).toBe(false);
+    expect(result.email).toBe(mockUser.email);
+    expect(result.jwt_version).toBe(1);
+    expect(result.wants2FA).toBe(false);
   });
   test('User Registration with 2FA', async () => {
     const result = await authenticator.register(mockUser2FA);
-    expect(result.user.email).toBe(mockUser2FA.email);
-    expect(result.user.jwt_version).toBe(1);
-    expect(result.user.wants2FA).toBe(true);
-    SECRET2FA = result.user.secret2FA
-    expect(result.user.secret2FA).not.toBeUndefined();
+    expect(result.email).toBe(mockUser2FA.email);
+    expect(result.jwt_version).toBe(1);
+    expect(result.wants2FA).toBe(true);
+    SECRET2FA = result.secret2FA
+    expect(result.secret2FA).not.toBeUndefined();
     expect(result.qrCode).not.toBeUndefined();
   });
 
@@ -202,6 +202,7 @@ describe('Authenticator Class Tests', () => {
   });
 
   afterAll(async () => {
+    await authenticator.dumpDB()
     await authenticator.User.collection.drop();
   });
 

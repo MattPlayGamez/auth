@@ -41,16 +41,16 @@ class Authenticator {
                     label: this.QR_LABEL,
                     encoding: 'base32'
                 });
-                const qrCode = await QRCode.toDataURL(otpauth_url);
                 newUser.secret2FA = secret.base32;
                 await newUser.save();
-                return { user: newUser, qrCode }
+                newUser.qrCode = await QRCode.toDataURL(otpauth_url);
+                return newUser
             }
             await newUser.save();
 
 
             if (!userObject.wants2FA) {
-                return { user: newUser };
+                return newUser;
             }
 
         } catch (err) {
@@ -234,7 +234,7 @@ class Authenticator {
             return `User with ID ${userId} couldn't be removed`
         }
     }
-    async users() {
+    async dumpDB() {
         return await this.User.find()
     }
 

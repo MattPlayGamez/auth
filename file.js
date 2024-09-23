@@ -14,19 +14,19 @@ const algorithm = 'aes-256-ctr';
 
 // Helper functions
 function encrypt(text, password) {
-    const salt = crypto.randomBytes(16);
-    const key = crypto.scryptSync(password, salt, 32);
+    const rounds = crypto.randomBytes(16);
+    const key = crypto.scryptSync(password, rounds, 32);
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(algorithm, key, iv);
     let crypted = cipher.update(text, 'utf8', 'hex');
     crypted += cipher.final('hex');
-    return salt.toString('hex') + iv.toString('hex') + crypted;
+    return rounds.toString('hex') + iv.toString('hex') + crypted;
 }
 
 function decrypt(encryptedText, password) {
-    const salt = Buffer.from(encryptedText.slice(0, 32), 'hex');
+    const rounds = Buffer.from(encryptedText.slice(0, 32), 'hex');
     const iv = Buffer.from(encryptedText.slice(32, 64), 'hex');
-    const key = crypto.scryptSync(password, salt, 32);
+    const key = crypto.scryptSync(password, rounds, 32);
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
     let dec = decipher.update(encryptedText.slice(64), 'hex', 'utf8');
     dec += decipher.final('utf8');
@@ -49,9 +49,9 @@ function loadUsersFromFile(filePath, password) {
 // Load users from file on startup
 
 class Authenticator {
-    constructor(QR_LABEL, salt, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, DB_FILE_PATH, DB_PASSWORD) {
+    constructor(QR_LABEL, rounds, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, DB_FILE_PATH, DB_PASSWORD) {
         this.QR_LABEL = QR_LABEL;
-        this.salt = salt;
+        this.rounds = rounds;
         this.JWT_SECRET_KEY = JWT_SECRET_KEY;
         this.JWT_OPTIONS = JWT_OPTIONS;
         this.maxLoginAttempts = maxLoginAttempts - 2;
@@ -75,10 +75,10 @@ class Authenticator {
     async register(userObject) {
         if (!userObject.loginAttempts) userObject.loginAttempts = 0
         if (!userObject.locked) userObject.locked = false
-        if (!userObject.id) userObject.id = uuid.v4()
+        if (!userObject._id) userObject._id = uuid.v4()
+        let returnedUser = userObject
         try {
-            let returnedUser = userObject
-            const hash = await bcrypt.hashSync(userObject.password, this.salt);
+            const hash = await bcrypt.hash(userObject.password, this.rounds);
             if (userObject.wants2FA) {
                 const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
                 const otpauth_url = speakeasy.otpauthURL({
@@ -104,40 +104,40 @@ class Authenticator {
     }
 
     async login(email, password, twoFactorCode) {
-        const user = this.users.find(u => u.email === email);
-        if (!user) return null;
+        const account = this.users.find(u => u.email === email);
+        if (!email) return null;
+        if (!password) return null;
 
         try {
-            if (user.locked) return "User is locked"
-            const result = await bcrypt.compareSync(password, user.password);
+            if (account.locked) return "User is locked"
+            const result = await bcrypt.compare(password, account.password);
 
             if (!result) {
 
-                (user.loginAttempts >= this.maxLoginAttempts) ? this.lockUser(user.id) : await this.changeLoginAttempts(user.id, user.loginAttempts + 1)
+                (account.loginAttempts >= this.maxLoginAttempts) ? this.lockUser(account.id) : await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
 
                 return null
             };
-            if (user) {
-                if (user.wants2FA) {
+            if (account) {
+                if (account.wants2FA) {
                     if (twoFactorCode === undefined) {
                         return null;
                     }
 
 
                     const verified = speakeasy.totp.verify({
-                        secret: user.secret2FA,
+                        secret: account.secret2FA,
                         encoding: 'base32',
                         token: twoFactorCode, // Verwijder Number()
                         window: 2 // Sta 2 tijdstippen toe voor en na de huidige tijd
                     });
-                    console.log('Verification result:', verified);
                     if (!verified) return "Invalid 2FA code";
 
                 }
-                const jwt_token = jwt.sign({ id: user.id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
-                this.changeLoginAttempts(user.id, 0)
+                const jwt_token = jwt.sign({ _id: account._id, version: account.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+                this.changeLoginAttempts(account._id, 0)
 
-                return { ...user, jwt_token };
+                return { ...account, jwt_token };
             }
         } catch (err) {
             throw err;
@@ -152,6 +152,7 @@ class Authenticator {
             if (userIndex !== -1) {
                 this.users[userIndex].emailCode = emailCode;
             }
+            this.users.push()
             return emailCode;
 
         } catch (error) {
@@ -166,26 +167,24 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].emailCode = null;
         }
-        const jwt_token = jwt.sign({ id: user.id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        const jwt_token = jwt.sign({ _id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        this.users.push()
         return { ...user, jwt_token };
     }
     getInfoFromUser(userId) {
-        const user = this.users.find(u => u.id === userId);
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
         return user
     }
 
-    //jwt_version
     async verifyToken(token) {
         if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
             let jwt_token = jwt.decode(token);
-            console.log(jwt_token)
-            console.log(this.getInfoFromUser(jwt_token.id).jwt_version)
-            return (this.getInfoFromUser(jwt_token.id).jwt_version == jwt_token.version);
+            return (this.getInfoFromUser(jwt_token._id).jwt_version == jwt_token.version);
         }
     }
     async verify2FA(userId, twofactorcode) {
-        let user = this.users.find(user => user.id === userId)
+        let user = this.users.find(user => user._id === userId)
         if (!user) return null
         const verified = speakeasy.totp.verify({
             secret: user.secret2FA,
@@ -197,65 +196,64 @@ class Authenticator {
 
     }
     async resetPassword(userId, newPassword) {
-        const user = this.users.find(u => u.id === userId);
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
-        user.password = bcrypt.hashSync(newPassword, this.salt);
+        user.password = await bcrypt.hash(newPassword, this.rounds);
         // Vervang het wachtwoord van de gebruiker in de array
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].password = user.password;
             this.users[userIndex].jwt_version += 1
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+        this.users.push()
 
         return user;
     }
     async changeLoginAttempts(userId, attempts) {
-        const user = this.users.find(u => u.id === userId);
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].loginAttempts = attempts;
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+        this.users.push()
+
         return user;
     }
     async lockUser(userId) {
-        const user = this.users.find(u => u.id === userId);
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].locked = true;
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+        this.users.push()
+
         return user;
     }
     async unlockUser(userId) {
-        console.log(userId)
-        console.log(this.users)
-        const user = this.users.find(u => u.id === userId);
-        // console.log(user)
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].locked = false;
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+        this.users.push()
         return user;
     }
-
     async revokeUserTokens(userId) {
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].jwt_version += 1;
         }
+        this.users.push()
+
 
     }
-
     async remove2FA(userId) {
-        const user = this.users.find(u => u.id === userId);
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].wants2FA = false;
             user.wants2FA = false
@@ -264,13 +262,14 @@ class Authenticator {
             this.users[userIndex].qrCode = "";
             user.qrCode = false
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+        this.users.push()
+
         return user;
     }
     async add2FA(userId) {
-        const user = this.users.find(u => u.id === userId);
+        const user = this.users.find(u => u._id === userId);
         if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.id === userId);
+        const userIndex = this.users.findIndex(u => u._id === userId);
         const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
         const otpauth_url = speakeasy.otpauthURL({
             secret: secret.base32,
@@ -278,40 +277,39 @@ class Authenticator {
             encoding: 'base32'
         });
         const qrCode = await QRCode.toDataURL(otpauth_url);
-        userObject.secret2FA = secret.base32;
-        returnedUser.qrCode = qrCode;
         if (userIndex !== -1) {
             this.users[userIndex].wants2FA = true;
             user.wants2FA = true
-            this.users[userIndex].secret2FA = secret;
-            user.secret2FA = secret
-            user.qrCode = otpauth_url
+            this.users[userIndex].secret2FA = secret.base32;
+            user.secret2FA = secret.base32
+            user.qrCode = qrCode
         }
-        saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
+        this.users.push()
+
         return user;
     }
     async removeUser(userId) {
         try {
-            const user = this.users.find(u => u.id === userId);
+            const user = this.users.find(u => u._id === userId);
             if (!user) return null;
-            const userIndex = this.users.findIndex(u => u.id === userId);
+            const userIndex = this.users.findIndex(u => u._id === userId);
             if (userIndex !== -1) {
                 this.users.splice(userIndex, 1);
             }
-            "User has been removed"
+            this.users.push()
+            return "User has been removed"
 
         } catch (error) {
             return `User with ID ${userId} couldn't be removed`
 
         }
 
+
     }
+    async dumpDB() {
+        return this.users
+    }
+
 }
-
-
-
-
-
-
 
 module.exports = Authenticator
