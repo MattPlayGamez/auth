@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 18.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
   test-ubuntu-node-20:
@@ -48,8 +48,8 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
-      
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
+
       - run: npx jest --forceExit mongodb.test.js
 
   test-ubuntu-node-22:
@@ -70,7 +70,7 @@ jobs:
           node-version: 22.x
       - run: npm ci
 
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
   test-windows-node-18:
@@ -90,7 +90,7 @@ jobs:
         with:
           node-version: 18.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
   test-windows-node-20:
@@ -110,7 +110,7 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
   test-windows-node-22:
@@ -130,7 +130,7 @@ jobs:
         with:
           node-version: 22.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
   test-macos-node-18:
@@ -150,7 +150,7 @@ jobs:
         with:
           node-version: 18.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
   test-macos-node-20:
@@ -170,7 +170,7 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npm install jest @babel/core @babel/preset-env babel-jest
+      - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
   test-macos-node-22:
     runs-on: macos-latest
