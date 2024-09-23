@@ -12,22 +12,172 @@ env:
   MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_STRING }}
 
 jobs:
-  test:
-    # runs-on: ubuntu-latest
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        node-version: [14.x, 16.x, 18.x, 20.x, 21.x, 22.x]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
+  test-ubuntu-node-18:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-18-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-18-
+      - name: Use Node.js 18.x
         uses: actions/setup-node@v4
-
+        with:
+          node-version: 18.x
       - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-ubuntu-node-20:
+    runs-on: ubuntu-latest
+    needs: test-ubuntu-node-18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-20-
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-ubuntu-node-22:
+    runs-on: ubuntu-latest
+    needs: test-ubuntu-node-20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-22-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-22-
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-windows-node-18:
+    runs-on: windows-latest
+    needs: test-ubuntu-node-22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-18-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-18-
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-windows-node-20:
+    runs-on: windows-latest
+    needs: test-windows-node-18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-20-
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-windows-node-22:
+    runs-on: windows-latest
+    needs: test-windows-node-20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-22-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-22-
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-macos-node-18:
+    runs-on: macos-latest
+    needs: test-windows-node-22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-18-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-18-
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+
+  test-macos-node-20:
+    runs-on: macos-latest
+    needs: test-macos-node-18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-20-
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm ci
+      - run: npx jest --forceExit mongodb.test.js
+  test-macos-node-22:
+    runs-on: macos-latest
+    needs: test-macos-node-20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-22-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-22-
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
       - run: npx jest --forceExit mongodb.test.js
 
   deploy:
@@ -42,7 +192,7 @@ jobs:
       # Setup Node.js environment
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
 
       # Install dependencies
