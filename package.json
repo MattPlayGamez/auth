@@ -8,6 +8,14 @@
     "start": "node test/test.js",
     "test": "npx jest --forceExit *.test.js"
   },
+    "bugs": {
+      "url": "https://github.com/MattPlayGamez/auth/issues",
+      "email": "xjuqhfou@anonaddy.me"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/MattPlayGamez/auth"
+    },
   "extensionsToTreatAsEsm": [
     ".js"
   ],
@@ -17,7 +25,6 @@
   "dependencies": {
     "bcrypt": "^5.0.1",
     "dotenv": "^16.4.5",
-    "fs": "^0.0.1-security",
     "jest": "^29.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.3",
