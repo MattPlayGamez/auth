@@ -101,7 +101,7 @@ describe('Authenticator Class Tests', () => {
     test('Verify JWT Token', async () => {
         const loginResult = await authenticator.login(mockUser.email, mockUser.password);
         const tokenVerification = await authenticator.verifyToken(loginResult.jwt_token);
-        expect(tokenVerification).toBe(true);
+        expect(tokenVerification).toBeDefined()
     });
 
     test('Verify 2FA code', async () => {

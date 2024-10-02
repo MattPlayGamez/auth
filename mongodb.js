@@ -147,13 +147,7 @@ class Authenticator {
         try {
             if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
                 let jwt_token = jwt.decode(token);
-                let user = await this.getInfoFromUser(jwt_token.id)
-
-                if (user.jwt_version == jwt_token.version) {
-                    return true
-                } else {
-                    return false
-                }
+                return (this.getInfoFromUser(jwt_token._id).version == jwt_token.version) ? this.getInfoFromUser(jwt_token._id) : false;
             }
         } catch (error) {
             console.log(error)
