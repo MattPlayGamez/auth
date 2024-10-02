@@ -1,4 +1,4 @@
-# @mattplaygamez/auth
+# Seamless-Auth
 
 A versatile and secure authentication module for Node.js applications.
  

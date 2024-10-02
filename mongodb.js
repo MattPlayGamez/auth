@@ -1,11 +1,9 @@
-// A WIP
-
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const mongoose = require('mongoose')
-
+const Crypto = require('node:crypto')
 
 // Creëer het gebruikersmodel
 
@@ -111,7 +109,7 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = crypto.randomUUID()
+        let emailCode = Crypto.randomUUID()
         try {
             await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
             return { emailCode }

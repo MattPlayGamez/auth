@@ -5,16 +5,17 @@ const uuid = require('uuid')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const fs = require('fs');
-const crypto = require('crypto');
+const Crypto = require('node:crypto')
+
 
 const algorithm = 'aes-256-ctr';
 
 // Helper functions
 function encrypt(text, password) {
-    const rounds = crypto.randomBytes(16);
-    const key = crypto.scryptSync(password, rounds, 32);
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(algorithm, key, iv);
+    const rounds = Crypto.randomBytes(16);
+    const key = Crypto.scryptSync(password, rounds, 32);
+    const iv = Crypto.randomBytes(16);
+    const cipher = Crypto.createCipheriv(algorithm, key, iv);
     let crypted = cipher.update(text, 'utf8', 'hex');
     crypted += cipher.final('hex');
     return rounds.toString('hex') + iv.toString('hex') + crypted;
@@ -23,8 +24,8 @@ function encrypt(text, password) {
 function decrypt(encryptedText, password) {
     const rounds = Buffer.from(encryptedText.slice(0, 32), 'hex');
     const iv = Buffer.from(encryptedText.slice(32, 64), 'hex');
-    const key = crypto.scryptSync(password, rounds, 32);
-    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    const key = Crypto.scryptSync(password, rounds, 32);
+    const decipher = Crypto.createDecipheriv(algorithm, key, iv);
     let dec = decipher.update(encryptedText.slice(64), 'hex', 'utf8');
     dec += decipher.final('utf8');
     return dec;
@@ -140,7 +141,7 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = crypto.randomUUID()
+        let emailCode = Crypto.randomUUID()
         try {
             const user = this.users.find(u => u.email === email);
             if (!user) return null;

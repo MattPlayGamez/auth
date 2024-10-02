@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
+const Crypto = require('node:crypto')
+
 
 class Authenticator {
     constructor(QR_LABEL, rounds, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, userObject) {
@@ -87,7 +89,7 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = crypto.randomUUID()
+        let emailCode = Crypto.randomUUID()
         try {
             const user = this.users.find(u => u.email === email);
             if (!user) return null;
