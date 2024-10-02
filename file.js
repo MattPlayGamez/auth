@@ -10,8 +10,6 @@ const { nanoid } = require('nanoid');
 
 const algorithm = 'aes-256-ctr';
 
-
-
 // Helper functions
 function encrypt(text, password) {
     const rounds = crypto.randomBytes(16);
