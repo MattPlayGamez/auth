@@ -1,6 +1,6 @@
 {
   "name": "seamless-auth",
-  "version": "3.6.3",
+  "version": "3.6.5",
   "description": "A full fledged authentication system...",
   "type": "commonjs",
   "main": "memory.js",
@@ -22,6 +22,14 @@
     "start": "node test/test.js",
     "test": "npx jest --forceExit *.test.js"
   },
+    "bugs": {
+      "url": "https://github.com/MattPlayGamez/auth/issues",
+      "email": "xjuqhfou@anonaddy.me"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/MattPlayGamez/auth"
+    },
   "extensionsToTreatAsEsm": [
     ".js"
   ],
@@ -31,7 +39,6 @@
   "dependencies": {
     "bcrypt": "^5.0.1",
     "dotenv": "^16.4.5",
-    "fs": "^0.0.2",
     "jest": "^29.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.0",
