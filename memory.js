@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
-const { nanoid } = require('nanoid');
 
 class Authenticator {
     constructor(QR_LABEL, rounds, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, userObject) {
@@ -88,7 +87,7 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = nanoid(20)
+        let emailCode = crypto.randomUUID()
         try {
             const user = this.users.find(u => u.email === email);
             if (!user) return null;
@@ -238,9 +237,4 @@ class Authenticator {
     }
 
 }
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Authenticator;
-}
-
-// ES Modules compatibility (for `import`)
-export default Authenticator;
+module.exports = Authenticator

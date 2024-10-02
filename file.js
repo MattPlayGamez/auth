@@ -6,7 +6,6 @@ const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const fs = require('fs');
 const crypto = require('crypto');
-const { nanoid } = require('nanoid');
 
 const algorithm = 'aes-256-ctr';
 
@@ -141,7 +140,7 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = nanoid(20)
+        let emailCode = crypto.randomUUID()
         try {
             const user = this.users.find(u => u.email === email);
             if (!user) return null;
@@ -309,9 +308,4 @@ class Authenticator {
 
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Authenticator;
-}
-
-// ES Modules compatibility (for `import`)
-export default Authenticator;
+module.exports = Authenticator

@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
 const mongoose = require('mongoose')
-const { nanoid } = require('nanoid');
 
 
 // Creëer het gebruikersmodel
@@ -112,7 +111,7 @@ class Authenticator {
         }
     }
     async registerEmailSignin(email) {
-        let emailCode = nanoid(30)
+        let emailCode = crypto.randomUUID()
         try {
             await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
             return { emailCode }
@@ -235,9 +234,4 @@ class Authenticator {
 
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Authenticator;
-}
-
-// ES Modules compatibility (for `import`)
-export default Authenticator;
+module.exports = Authenticator
