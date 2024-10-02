@@ -61,7 +61,6 @@ class Authenticator {
         const originalPush = this.users.push;
         this.users.push = (...args) => {
             const result = originalPush.apply(this.users, args);
-            console.log("database changed")
             saveUsersToFile(this.users, this.DB_FILE_PATH, this.DB_PASSWORD);
             return result;
         };

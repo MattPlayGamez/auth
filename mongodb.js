@@ -8,7 +8,6 @@ const mongoose = require('mongoose')
 const { nanoid } = require('nanoid');
 
 
-
 // Creëer het gebruikersmodel
 
 class Authenticator {
@@ -20,7 +19,7 @@ class Authenticator {
         this.maxLoginAttempts = maxLoginAttempts;
 
         // Verbind met MongoDB
-        mongoose.connect(MONGODB_CONNECTION_STRING, { useNewUrlParser: true, useUnifiedTopology: true });
+        mongoose.connect(MONGODB_CONNECTION_STRING);
 
         this.User = mongoose.model('User', userSchema)
     }
@@ -70,13 +69,11 @@ class Authenticator {
             if (user.locked) return "User is locked"
             const result = await bcrypt.compare(password, user.password);
             if (!result) {
-                console.log(`${user.loginAttempts} >= ${this.maxLoginAttempts}`)
 
                 if (user.loginAttempts >= this.maxLoginAttempts) {
 
                     this.lockUser(user._id);
                 } else {
-                    console.log("changing login attempts")
                     let newAttempts = user.loginAttempts + 1
                     await this.changeLoginAttempts(user._id, newAttempts);
                 }
@@ -101,7 +98,6 @@ class Authenticator {
                         token: twoFactorCode,
                         window: 2 // Sta 2 tijdstippen toe voor en na de huidige tijd
                     });
-                    console.log('Verification result:', verified);
                     if (!verified) return "Invalid 2FA code";
 
                 }
@@ -154,7 +150,6 @@ class Authenticator {
         try {
             if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
                 let jwt_token = jwt.decode(token);
-                console.log(jwt_token)
                 let user = await this.getInfoFromUser(jwt_token.id)
 
                 if (user.jwt_version == jwt_token.version) {
