@@ -1,14 +1,6 @@
-# Seamless-Auth
+# Seamless-auth
 
 A versatile and secure authentication module for Node.js applications.
- 
-
-## DEPRECATED
-
-> **Warning**
-> TO GET UPDATES AND FUTURE PROOFING, please use `seamless-auth` package
-
-
 
 
 

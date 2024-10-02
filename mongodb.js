@@ -144,10 +144,15 @@ class Authenticator {
     }
 
     async verifyToken(token) {
+        
         try {
+            
             if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
                 let jwt_token = jwt.decode(token);
-                return (this.getInfoFromUser(jwt_token._id).version == jwt_token.version) ? this.getInfoFromUser(jwt_token._id) : false;
+                let user = await this.getInfoFromUser(jwt_token.id)
+                console.log("user")
+                console.log(user)
+                return (user.jwt_version === jwt_token.version) ? this.getInfoFromUser(jwt_token._id) : false;
             }
         } catch (error) {
             console.log(error)
