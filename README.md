@@ -1,7 +1,7 @@
 # @mattplaygamez/auth
 
 A versatile and secure authentication module for Node.js applications.
-
+ 
 
 ## DEPRECATED
 
