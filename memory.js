@@ -238,5 +238,9 @@ class Authenticator {
     }
 
 }
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Authenticator;
+}
 
-module.exports = Authenticator
+// ES Modules compatibility (for `import`)
+export default Authenticator;

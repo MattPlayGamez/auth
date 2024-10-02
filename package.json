@@ -4,6 +4,20 @@
   "description": "A full fledged authentication system...",
   "type": "commonjs",
   "main": "memory.js",
+  "exports": {
+    "./file": {
+      "require": "./file.js",
+      "import": "./file.js" 
+    },
+    "./memory": {
+      "require": "./memory.js",
+      "import": "./memory.js"
+    },
+    "./mongodb": {
+      "require": "./mongodb.js",
+      "import": "./mongodb.js"
+    }
+  },
   "scripts": {
     "start": "node test/test.js",
     "test": "npx jest --forceExit *.test.js"
@@ -17,10 +31,10 @@
   "dependencies": {
     "bcrypt": "^5.0.1",
     "dotenv": "^16.4.5",
-    "fs": "^0.0.1-security",
+    "fs": "^0.0.2",
     "jest": "^29.7.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.6.3",
+    "mongoose": "^8.7.0",
     "nanoid": "^5.0.7",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
