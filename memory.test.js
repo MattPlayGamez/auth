@@ -31,6 +31,8 @@ describe('Authenticator Class Tests', () => {
         authenticator = new Authenticator(
             'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, []
         );
+        authenticator.ALLOW_DB_DUMP = true
+
     });
 
 

@@ -126,7 +126,7 @@ class Authenticator {
                     if (!verified) return this.INVALID_2FA_CODE_TEXT;
 
                 }
-                const jwt_token = jwt.sign({ id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+                const jwt_token = jwt.sign({ _id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
 
                 this.changeLoginAttempts(user._id, 0)
 
@@ -170,7 +170,7 @@ class Authenticator {
         await this.User.findOneAndUpdate({ emailCode }, { emailCode: "" });
 
         const jwt_token = jwt.sign(
-            { id: user._id, version: user.jwt_version },
+            { _id: user._id, version: user.jwt_version },
             this.JWT_SECRET_KEY,
             this.JWT_OPTIONS
         );
@@ -199,7 +199,7 @@ class Authenticator {
             
             if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
                 let jwt_token = jwt.decode(token);
-                let user = await this.getInfoFromUser(jwt_token.id)
+                let user = await this.getInfoFromUser(jwt_token._id)
                 return (user.jwt_version === jwt_token.version) ? this.getInfoFromUser(jwt_token._id) : false;
             }
         } catch (error) {

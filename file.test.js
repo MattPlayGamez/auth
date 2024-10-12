@@ -5,6 +5,8 @@ const speakeasy = require('speakeasy');
 const fs = require('fs');
 
 
+
+
 const mockUser = {
     email: "test@example.com",
     password: "password123",
@@ -32,6 +34,7 @@ describe('Authenticator Class Tests', () => {
         authenticator = new Authenticator(
             'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, "./app.db", "SECRETTTT"
         );
+        authenticator.ALLOW_DB_DUMP = true
     });
 
 
