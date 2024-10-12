@@ -183,6 +183,7 @@ class Authenticator {
         try {
             const user = this.users.find(u => u.email === email);
             if (!user) return null;
+            if (user.locked) return this.lockedText;
             const userIndex = this.users.findIndex(u => u.email === email);
             if (userIndex !== -1) {
                 this.users[userIndex].emailCode = emailCode;

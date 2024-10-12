@@ -148,6 +148,7 @@ class Authenticator {
     async registerEmailSignin(email) {
         let emailCode = Crypto.randomUUID()
         try {
+            if (await this.User.findOne({ email: email }).locked) return this.lockedText
             await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
             return { emailCode }
 
