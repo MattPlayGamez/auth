@@ -99,6 +99,11 @@ describe('Authenticator Class Tests', () => {
         expect(info.email).toBe(mockUser.email);
     })
 
+    test('Get Info From Email', async () => {
+        const info = await authenticator.getInfoFromEmail(mockUser.email)
+        expect(info.email).toBe(mockUser.email);
+    })
+
     test('Verify JWT Token', async () => {
         const loginResult = await authenticator.login(mockUser.email, mockUser.password);
         const tokenVerification = await authenticator.verifyToken(loginResult.jwt_token);

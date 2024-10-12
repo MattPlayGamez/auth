@@ -223,7 +223,18 @@ class Authenticator {
         if (!user) return null;
         return user
     }
+    /**
+     * Retrieves user information based on the user email
+     * @param {string} email - the email to retrieve information
+     * @returns {object} - an object with the user information
+     * @throws {Error} - any error that occurs during the process
+     */
 
+    getInfoFromEmail(email) {
+        const user = this.users.find(u => u.email === email);
+        if (!user) return null;
+        return user
+    }
     /**
      * Verifies a JWT token and returns the user information if the token is valid
      * @param {string} token - the JWT token to verify

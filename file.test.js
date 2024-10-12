@@ -2,9 +2,6 @@ require("dotenv/config")
 const Authenticator = require('./file.js')
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
-const fs = require('fs');
-
-
 
 
 const mockUser = {
@@ -32,9 +29,10 @@ describe('Authenticator Class Tests', () => {
 
     beforeAll(async () => {
         authenticator = new Authenticator(
-            'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, "./app.db", "SECRETTTT"
+            'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, "app.db", "password123"
         );
         authenticator.ALLOW_DB_DUMP = true
+
     });
 
 
@@ -98,6 +96,11 @@ describe('Authenticator Class Tests', () => {
 
     test('Get Info From User', async () => {
         const info = await authenticator.getInfoFromUser(userID)
+        expect(info.email).toBe(mockUser.email);
+    })
+
+    test('Get Info From Email', async () => {
+        const info = await authenticator.getInfoFromEmail(mockUser.email)
         expect(info.email).toBe(mockUser.email);
     })
 
@@ -196,8 +199,6 @@ describe('Authenticator Class Tests', () => {
     });
     afterAll(async () => {
         console.log(await authenticator.dumpDB())
-        fs.rmSync("./app.db")
-
     });
 
 });

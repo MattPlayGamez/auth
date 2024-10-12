@@ -186,6 +186,15 @@ class Authenticator {
     async getInfoFromUser(userId) {
         return await this.User.findOne({ _id: userId });
     }
+    /**
+     * Retrieves user information based on the user's email address
+     * @param {string} email - the email address to retrieve information
+     * @returns {object} - an object with the user information
+     * @throws {Error} - any error that occurs during the process
+     */
+    async getInfoFromEmail(email) {
+        return await this.User.findOne({ email: email });
+    }
 
     /**
      * Verifies a JWT token and returns the user information if the token is valid
