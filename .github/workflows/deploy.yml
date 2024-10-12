@@ -1,4 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# This workflow will do a clean installation of node dependencies, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
 name: Tests (main) & Deployment
@@ -16,13 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-18-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-18-
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
         with:
@@ -36,20 +29,12 @@ jobs:
     needs: test-ubuntu-node-18
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-20-
       - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
       - run: npm ci
       - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
-
       - run: npx jest --forceExit mongodb.test.js
 
   test-ubuntu-node-22:
@@ -57,19 +42,11 @@ jobs:
     needs: test-ubuntu-node-20
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-22-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-22-
       - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
       - run: npm ci
-
       - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
@@ -78,13 +55,6 @@ jobs:
     needs: test-ubuntu-node-22
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-18-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-18-
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
         with:
@@ -98,13 +68,6 @@ jobs:
     needs: test-windows-node-18
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-20-
       - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
@@ -118,13 +81,6 @@ jobs:
     needs: test-windows-node-20
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-22-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-22-
       - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
@@ -138,13 +94,6 @@ jobs:
     needs: test-windows-node-22
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-18-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-18-
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
         with:
@@ -158,13 +107,6 @@ jobs:
     needs: test-macos-node-18
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-20-
       - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
@@ -172,22 +114,17 @@ jobs:
       - run: npm ci
       - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
+
   test-macos-node-22:
     runs-on: macos-latest
     needs: test-macos-node-20
     steps:
       - uses: actions/checkout@v4
-      - name: Cache NPM modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-22-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-22-
       - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
+      - run: npm ci
       - run: npm install jest npm install --save-dev @babel/preset-env @babel/core babel-jest
       - run: npx jest --forceExit mongodb.test.js
 
