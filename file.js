@@ -97,6 +97,8 @@ class Authenticator {
         if (!userObject.loginAttempts) userObject.loginAttempts = 0
         if (!userObject.locked) userObject.locked = false
         if (!userObject._id) userObject._id = uuid.v4()
+        userObject.locked = false
+        userObject.emailCode = null
         let returnedUser = userObject
         try {
             const hash = await bcrypt.hash(userObject.password, this.rounds);
@@ -114,6 +116,7 @@ class Authenticator {
             returnedUser.password = hash;
             userObject.password = hash;
             userObject.jwt_version = 1
+
 
             if (this.users.find(u => u.email === userObject.email)) return this.USER_ALREADY_EXISTS_TEXT
             this.users.push(userObject);
