@@ -181,7 +181,7 @@ await auth.revokeUserTokens(userId)
 ```
 Check authentication
 ```javascript
-let isAuth = await Auth.isAuthenticated(req)
+await Auth.isAuthenticated(req)
 if (isAuth) // do something
 ```
 
