@@ -30,7 +30,7 @@ class Authenticator {
         this.lockedText = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
-        this.REMOVED_USER_TEXT = "User has been removed" 
+        this.REMOVED_USER_TEXT = "User has been removed"
         this.USER_ALREADY_EXISTS_TEXT = "User already exists"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
     }
@@ -119,7 +119,7 @@ class Authenticator {
 
                     const verified = speakeasy.totp.verify({
                         secret: user.secret2FA,
-                        encoding:  this.OTP_ENCODING,
+                        encoding: this.OTP_ENCODING,
                         token: twoFactorCode,
                         window: this.OTP_WINDOW
                     });
@@ -204,9 +204,9 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async verifyToken(token) {
-        
+
         try {
-            
+
             if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
                 let jwt_token = jwt.decode(token);
                 let user = await this.getInfoFromUser(jwt_token._id)
@@ -348,6 +348,32 @@ class Authenticator {
     async dumpDB() {
         if (this.ALLOW_DB_DUMP === false) return "DB dumping is disabled"
         return await this.User.find()
+    }
+
+    async isAuthenticated(req) {
+        try {
+            const rawCookies = req.headers.cookie || '';
+            const cookies = {};
+            rawCookies.split(';').forEach(cookie => {
+                const [key, value] = cookie.trim().split('=');
+                cookies[key] = decodeURIComponent(value);
+            });
+
+            const token = cookies.token;
+            console.log(token)
+            let user = await this.verifyToken(token)
+            console.log(user)
+            if (!token) {
+                return false;
+            }
+            if (!user) {
+                return false;
+            }
+            req.user = user;
+            return true
+        } catch (err) {
+            console.log(err)
+        }
     }
 
 }

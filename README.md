@@ -116,10 +116,14 @@ Revokes all existing JWT token for that user
 
 ### `removeUser(userId)`
 Removes a user.
+
+### `isAuthenticated(req)`
+Checks if a user is authenticated using the token from the cookies from the request and provides the user as req.user
+
 ## Example
 Encrypted File
 ```javascript
-import Authenticator from 'seamless-auth/file.js';
+const Authenticator = require('seamless-auth/file.js');
 const auth = new Authenticator(
     'MyApp',
     12,
@@ -175,7 +179,20 @@ console.log(token.jwt_token); // It responds with a JSON WEB TOKEN
 
 await auth.revokeUserTokens(userId)
 ```
+Check authentication
+```javascript
+let isAuth = await Auth.isAuthenticated(req)
+if (isAuth) // do something
+```
 
+middleware to check authentication
+```javascript
+const checkAuth = async (req, res,next) => {
+    let isAuth = await Auth.isAuthenticated(req)
+    if (!isAuth) return res.redirect('/login')
+    next()
+}
+```
 
 ```javascript
 import Authenticator from "../mongodb.js";

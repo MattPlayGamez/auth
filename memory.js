@@ -1,13 +1,17 @@
-// DB Is in memory, can dumped using console.log(auth.users) to see all user objects in auth.users
+// Local file is not written to disk
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const speakeasy = require('speakeasy')
 const QRCode = require('qrcode')
+const fs = require('fs');
 const Crypto = require('node:crypto')
 
 
+const algorithm = 'aes-256-ctr';
+
 class Authenticator {
+
     /**
      * Constructor for the Authenticator class
      * @param {string} QR_LABEL - label for the QR code
@@ -15,28 +19,33 @@ class Authenticator {
      * @param {string} JWT_SECRET_KEY - secret key for signing JWTs
      * @param {object} JWT_OPTIONS - options for JWTs such as expiresIn
      * @param {number} maxLoginAttempts - maximum number of login attempts
-     * @param {object} userObject - object containing all user data
+     * @param {string} DB_FILE_PATH - path to the file where the users are stored
+     * @param {string} DB_PASSWORD - password to decrypt the file
      */
-    constructor(QR_LABEL, rounds, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, userObject) {
+    constructor(QR_LABEL, rounds, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, USER_ARRAY) {
         this.QR_LABEL = QR_LABEL;
         this.rounds = rounds;
         this.JWT_SECRET_KEY = JWT_SECRET_KEY;
         this.JWT_OPTIONS = JWT_OPTIONS;
         this.maxLoginAttempts = maxLoginAttempts - 2;
-        this.users = userObject;
+        this.users = USER_ARRAY;
         this.OTP_ENCODING = 'base32'
         this.lockedText = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
-        this.REMOVED_USER_TEXT = "User has been removed" 
-        this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
+        this.REMOVED_USER_TEXT = "User has been removed"
         this.USER_ALREADY_EXISTS_TEXT = "User already exists"
+        this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
+
+
     }
+
+
 
     /**
      * Registers a new user
      * @param {object} userObject - object with required keys: email, password, wants2FA, you can add custom keys too
-     * @returns {object} - registered user object, or "Gebruiker bestaat al" if user already exists
+     * @returns {object} - registered user object, or "User already exists" if user already exists
      * @throws {Error} - any other error
      */
     async register(userObject) {
@@ -63,6 +72,7 @@ class Authenticator {
             userObject.password = hash;
             userObject.jwt_version = 1
 
+
             if (this.users.find(u => u.email === userObject.email)) return this.USER_ALREADY_EXISTS_TEXT
             this.users.push(userObject);
             return returnedUser;
@@ -76,7 +86,7 @@ class Authenticator {
      * Logs in a user
      * @param {string} email - email address of user
      * @param {string} password - password of user
-     * @param {number} twoFactorCode - 2FA code of user
+     * @param {number} twoFactorCode - 2FA code of user or put null if user didn't provide a 2FA
      * @returns {object} - user object with jwt_token, or null if login was unsuccessful, or "User is locked" if user is locked
      * @throws {Error} - any other error
      */
@@ -86,7 +96,7 @@ class Authenticator {
         if (!password) return null;
 
         try {
-            if (account.locked) return this.lockedText;
+            if (account.locked) return this.lockedText
             const result = await bcrypt.compare(password, account.password);
 
             if (!result) {
@@ -105,7 +115,7 @@ class Authenticator {
                     const verified = speakeasy.totp.verify({
                         secret: account.secret2FA,
                         encoding: this.OTP_ENCODING,
-                        token: twoFactorCode, // Verwijder Number()
+                        token: twoFactorCode,
                         window: this.OTP_WINDOW
                     });
                     if (!verified) return this.INVALID_2FA_CODE_TEXT;
@@ -136,6 +146,7 @@ class Authenticator {
             if (userIndex !== -1) {
                 this.users[userIndex].emailCode = emailCode;
             }
+            this.users.push()
             return emailCode;
 
         } catch (error) {
@@ -157,6 +168,7 @@ class Authenticator {
             this.users[userIndex].emailCode = null;
         }
         const jwt_token = jwt.sign({ _id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+        this.users.push()
         return { ...user, jwt_token };
     }
     /**
@@ -170,19 +182,18 @@ class Authenticator {
         if (!user) return null;
         return user
     }
-
     /**
      * Retrieves user information based on the user email
-     * @param {string} email - the user email to retrieve information
+     * @param {string} email - the email to retrieve information
      * @returns {object} - an object with the user information
      * @throws {Error} - any error that occurs during the process
      */
+
     getInfoFromEmail(email) {
         const user = this.users.find(u => u.email === email);
         if (!user) return null;
         return user
     }
-
     /**
      * Verifies a JWT token and returns the user information if the token is valid
      * @param {string} token - the JWT token to verify
@@ -225,12 +236,13 @@ class Authenticator {
         const user = this.users.find(u => u._id === userId);
         if (!user) return null;
         user.password = await bcrypt.hash(newPassword, this.rounds);
-        // Vervang het wachtwoord van de gebruiker in de array
         const userIndex = this.users.findIndex(u => u._id === userId);
         if (userIndex !== -1) {
             this.users[userIndex].password = user.password;
             this.users[userIndex].jwt_version += 1
         }
+        this.users.push()
+
         return user;
     }
     /**
@@ -247,6 +259,8 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].loginAttempts = attempts;
         }
+        this.users.push()
+
         return user;
     }
     /**
@@ -262,6 +276,8 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].locked = true;
         }
+        this.users.push()
+
         return user;
     }
     /**
@@ -277,6 +293,7 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].locked = false;
         }
+        this.users.push()
         return user;
     }
     /**
@@ -290,6 +307,8 @@ class Authenticator {
         if (userIndex !== -1) {
             this.users[userIndex].jwt_version += 1;
         }
+        this.users.push()
+
 
     }
     /**
@@ -310,6 +329,8 @@ class Authenticator {
             this.users[userIndex].qrCode = "";
             user.qrCode = false
         }
+        this.users.push()
+
         return user;
     }
     /**
@@ -336,9 +357,10 @@ class Authenticator {
             user.secret2FA = secret.base32
             user.qrCode = qrCode
         }
+        this.users.push()
+
         return user;
     }
-
     /**
      * Removes a user from the database
      * @param {string} userId - the user ID to remove
@@ -353,6 +375,7 @@ class Authenticator {
             if (userIndex !== -1) {
                 this.users.splice(userIndex, 1);
             }
+            this.users.push()
             return this.REMOVED_USER_TEXT
 
         } catch (error) {
@@ -360,11 +383,50 @@ class Authenticator {
 
         }
 
+
     }
+    /**
+     * Retrieves all users from the database
+     * @returns {object[]} - an array of user objects
+     * @throws {Error} - any error that occurs during the process
+     */
     async dumpDB() {
         if (this.ALLOW_DB_DUMP === false) return "DB dumping is disabled"
         return this.users
     }
 
+    /**
+     * Verifies if a request is authenticated
+     * @param {object} req - the Express request object
+     * @returns {boolean} - true if the request is authenticated, otherwise false
+     * @throws {Error} - any error that occurs during the process
+     */
+    async isAuthenticated(req) {
+        try {
+            const rawCookies = req.headers.cookie || '';
+            const cookies = {};
+            rawCookies.split(';').forEach(cookie => {
+                const [key, value] = cookie.trim().split('=');
+                cookies[key] = decodeURIComponent(value);
+            });
+
+            const token = cookies.token;
+            console.log(token)
+            let user = await this.verifyToken(token)
+            console.log(user)
+            if (!token) {
+                return false;
+            }
+            if (!user) {
+                return false;
+            }
+            req.user = user;
+            return true
+        } catch (err) {
+            console.log(err)
+        }
+    }
+
 }
+
 module.exports = Authenticator

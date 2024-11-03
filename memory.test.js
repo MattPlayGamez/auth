@@ -3,7 +3,6 @@ const Authenticator = require('./memory.js')
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 
-
 const mockUser = {
     email: "test@example.com",
     password: "password123",
@@ -187,6 +186,20 @@ describe('Authenticator Class Tests', () => {
 
     })
 
+    test('Check if user is authenticated', async () => {
+        await authenticator.register({
+            email: "test@test.test",
+            password: "test",
+            wants2FA: false,
+        })
+        let user = await authenticator.login("test@test.test", "test")
+        console.log(user)
+        
+        let req = { headers: { "host": "127.0.0.1:3000", "connection": "keep-alive", "cache-control": "max-age=0", "sec-ch-ua": "\"Chromium\";v=\"130\", \"Brave\";v=\"130\", \"Not?A_Brand\";v=\"99\"", "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Windows\"", "dnt": "1", "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36", "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8", "sec-gpc": "1", "accept-language": "nl-NL,nl", "sec-fetch-site": "same-origin", "sec-fetch-mode": "navigate", "sec-fetch-user": "?1", "sec-fetch-dest": "document", "referer": "http://127.0.0.1:3000/login", "accept-encoding": "gzip, deflate, br, zstd", "cookie": `token=${user.jwt_token}`, "if-none-match": "W/\"14-VDnz0WejlS4iemsxsVhn1S8IIDE\"" } }
+        let response = await authenticator.isAuthenticated(req)
+        expect(response).toBe(true)
+    })
+
     test('Revoke All User Tokens', async () => {
         await authenticator.revokeUserTokens(userID)
         const user1 = await authenticator.verifyToken(userToken1)
@@ -197,6 +210,9 @@ describe('Authenticator Class Tests', () => {
         let response = await authenticator.removeUser(userID2FA)
         expect(response).toBe("User has been removed")
     });
+
+    
+
     afterAll(async () => {
         console.log(await authenticator.dumpDB())
     });

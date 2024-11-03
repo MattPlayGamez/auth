@@ -71,7 +71,7 @@ class Authenticator {
         this.lockedText = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
-        this.REMOVED_USER_TEXT = "User has been removed" 
+        this.REMOVED_USER_TEXT = "User has been removed"
         this.USER_ALREADY_EXISTS_TEXT = "User already exists"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
 
@@ -90,7 +90,7 @@ class Authenticator {
     /**
      * Registers a new user
      * @param {object} userObject - object with required keys: email, password, wants2FA, you can add custom keys too
-     * @returns {object} - registered user object, or "Gebruiker bestaat al" if user already exists
+     * @returns {object} - registered user object, or "User already exists" if user already exists
      * @throws {Error} - any other error
      */
     async register(userObject) {
@@ -131,7 +131,7 @@ class Authenticator {
      * Logs in a user
      * @param {string} email - email address of user
      * @param {string} password - password of user
-     * @param {number} twoFactorCode - 2FA code of user
+     * @param {number} twoFactorCode - 2FA code of user or put null if user didn't provide a 2FA
      * @returns {object} - user object with jwt_token, or null if login was unsuccessful, or "User is locked" if user is locked
      * @throws {Error} - any other error
      */
@@ -438,6 +438,38 @@ class Authenticator {
     async dumpDB() {
         if (this.ALLOW_DB_DUMP === false) return "DB dumping is disabled"
         return this.users
+    }
+
+    /**
+     * Verifies if a request is authenticated
+     * @param {object} req - the Express request object
+     * @returns {boolean} - true if the request is authenticated, otherwise false
+     * @throws {Error} - any error that occurs during the process
+     */
+    async isAuthenticated(req) {
+        try {
+            const rawCookies = req.headers.cookie || '';
+            const cookies = {};
+            rawCookies.split(';').forEach(cookie => {
+                const [key, value] = cookie.trim().split('=');
+                cookies[key] = decodeURIComponent(value);
+            });
+
+            const token = cookies.token;
+            console.log(token)
+            let user = await this.verifyToken(token)
+            console.log(user)
+            if (!token) {
+                return false;
+            }
+            if (!user) {
+                return false;
+            }
+            req.user = user;
+            return true
+        } catch (err) {
+            console.log(err)
+        }
     }
 
 }

@@ -5,3 +5,4 @@ supersecret
 test/test.js
 .env
 app.db
+temp/
