@@ -141,16 +141,16 @@ class Authenticator {
         if (!password) return null;
 
         try {
-            if (account.locked) return this.lockedText
             const result = await bcrypt.compare(password, account.password);
-
+            
             if (!result) {
-
+                
                 (account.loginAttempts >= this.maxLoginAttempts) ? this.lockUser(account.id) : await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
-
+                
                 return null
             };
             if (account) {
+                if (account.locked) return this.lockedText
                 if (account.wants2FA) {
                     if (twoFactorCode === undefined) {
                         return null;

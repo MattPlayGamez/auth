@@ -1,6 +1,6 @@
 {
   "name": "seamless-auth",
-  "version": "3.8.3",
+  "version": "3.8.4",
   "description": "A full fledged authentication system...",
   "type": "commonjs",
   "main": "memory.js",

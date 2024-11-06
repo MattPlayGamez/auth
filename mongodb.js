@@ -91,10 +91,9 @@ class Authenticator {
         if (!user) return null;
 
         try {
-            if (user.locked) return this.lockedText
             const result = await bcrypt.compare(password, user.password);
             if (!result) {
-
+                
                 if (user.loginAttempts >= this.maxLoginAttempts) {
 
                     this.lockUser(user._id);
@@ -105,6 +104,7 @@ class Authenticator {
                 return null;
             };
             if (user) {
+                if (user.locked) return this.lockedText
                 if (user.wants2FA) {
                     if (twoFactorCode === undefined) {
                         // Genereer QR-code voor de eerste respons
