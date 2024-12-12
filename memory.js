@@ -8,27 +8,17 @@ const fs = require('fs');
 const Crypto = require('node:crypto')
 
 
-const algorithm = 'aes-256-ctr';
-
 class Authenticator {
 
-    /**
-     * Constructor for the Authenticator class
-     * @param {string} QR_LABEL - label for the QR code
-     * @param {number} rounds - number of rounds for bcrypt
-     * @param {string} JWT_SECRET_KEY - secret key for signing JWTs
-     * @param {object} JWT_OPTIONS - options for JWTs such as expiresIn
-     * @param {number} maxLoginAttempts - maximum number of login attempts
-     * @param {string} DB_FILE_PATH - path to the file where the users are stored
-     * @param {string} DB_PASSWORD - password to decrypt the file
-     */
-    constructor(QR_LABEL, rounds, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, USER_ARRAY) {
-        this.QR_LABEL = QR_LABEL;
-        this.rounds = rounds;
-        this.JWT_SECRET_KEY = JWT_SECRET_KEY;
-        this.JWT_OPTIONS = JWT_OPTIONS;
-        this.maxLoginAttempts = maxLoginAttempts - 2;
-        this.users = USER_ARRAY;
+    constructor() {
+
+        this.QR_LABEL = "Authenticator";
+        this.rounds = 12;
+        this.JWT_SECRET_KEY = "changeme";
+        this.JWT_OPTIONS = { expiresIn: "1h" };
+        this.maxLoginAttempts = 13
+        this.maxLoginAttempts = this.maxLoginAttempts - 2;
+        this.users = []
         this.OTP_ENCODING = 'base32'
         this.lockedText = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
@@ -36,7 +26,6 @@ class Authenticator {
         this.REMOVED_USER_TEXT = "User has been removed"
         this.USER_ALREADY_EXISTS_TEXT = "User already exists"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
-
 
     }
 

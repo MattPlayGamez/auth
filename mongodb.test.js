@@ -44,9 +44,9 @@ describe('Authenticator Class Tests', () => {
   let emailCode = ""
 
   beforeAll(async () => {
-    authenticator = new Authenticator(
-      'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, MONGODB_CONNECTION_STRING, userSchema
-    );
+    authenticator = new Authenticator(MONGODB_CONNECTION_STRING, userSchema)
+    authenticator.rounds = 10
+    authenticator.JWT_SECRET_KEY = JWT_SECRET
     authenticator.ALLOW_DB_DUMP = true
 
   });

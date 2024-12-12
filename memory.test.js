@@ -27,9 +27,8 @@ describe('Authenticator Class Tests', () => {
     let emailCode = ""
 
     beforeAll(async () => {
-        authenticator = new Authenticator(
-            'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, []
-        );
+        authenticator = new Authenticator()
+        authenticator.JWT_SECRET_KEY = JWT_SECRET
         authenticator.ALLOW_DB_DUMP = true
 
     });

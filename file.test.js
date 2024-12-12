@@ -28,10 +28,10 @@ describe('Authenticator Class Tests', () => {
     let emailCode = ""
 
     beforeAll(async () => {
-        authenticator = new Authenticator(
-            'TestApp', 10, JWT_SECRET, { expiresIn: '1h' }, 3, "app.db", "password123"
-        );
+        authenticator = new Authenticator();
+        authenticator.rounds = 10
         authenticator.ALLOW_DB_DUMP = true
+        authenticator.JWT_SECRET_KEY = JWT_SECRET
 
     });
 
@@ -216,7 +216,7 @@ describe('Authenticator Class Tests', () => {
 
     afterAll(async () => {
         console.log(await authenticator.dumpDB())
-        fs.unlinkSync("./app.db")
+        fs.unlinkSync(authenticator.DB_FILE_PATH)
     });
 
 });

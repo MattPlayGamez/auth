@@ -8,22 +8,18 @@ const Crypto = require('node:crypto')
 // Creëer het gebruikersmodel
 
 class Authenticator {
+
     /**
      * Constructor for the Authenticator class
-     * @param {string} QR_LABEL - label for the QR code
-     * @param {number} salt - salt for hashing passwords
-     * @param {string} JWT_SECRET_KEY - secret key for signing JWTs
-     * @param {object} JWT_OPTIONS - options for JWTs such as expiresIn
-     * @param {number} maxLoginAttempts - maximum number of login attempts
      * @param {string} MONGODB_CONNECTION_STRING - connection string for MongoDB
      * @param {mongoose.Schema} userSchema - schema for the User model
      */
-    constructor(QR_LABEL, salt, JWT_SECRET_KEY, JWT_OPTIONS, maxLoginAttempts, MONGODB_CONNECTION_STRING, userSchema) {
-        this.QR_LABEL = QR_LABEL;
-        this.salt = salt;
-        this.JWT_SECRET_KEY = JWT_SECRET_KEY;
-        this.JWT_OPTIONS = JWT_OPTIONS;
-        this.maxLoginAttempts = maxLoginAttempts;
+    constructor(MONGODB_CONNECTION_STRING, userSchema) {
+        this.QR_LABEL = "Authenticator";
+        this.rounds = 12;
+        this.JWT_SECRET_KEY = "changeme";
+        this.JWT_OPTIONS = { expiresIn: "1h" };
+        this.maxLoginAttempts = 3;
         mongoose.connect(MONGODB_CONNECTION_STRING);
         this.User = mongoose.model('User', userSchema)
         this.OTP_ENCODING = 'base32'
@@ -35,6 +31,7 @@ class Authenticator {
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
     }
 
+
     /**
      * Registers a new user
      * @param {object} userObject - object with required keys: email, password, wants2FA, you can add custom keys too
@@ -43,7 +40,7 @@ class Authenticator {
      */
     async register(userObject) {
         try {
-            const hash = await bcrypt.hash(userObject.password, this.salt);
+            const hash = await bcrypt.hashSync(userObject.password, this.rounds);
             let newUser = new this.User({
                 ...userObject,
                 password: hash,
@@ -93,7 +90,7 @@ class Authenticator {
         try {
             const result = await bcrypt.compare(password, user.password);
             if (!result) {
-                
+
                 if (user.loginAttempts >= this.maxLoginAttempts) {
 
                     this.lockUser(user._id);
@@ -244,7 +241,7 @@ class Authenticator {
      */
     async resetPassword(userId, newPassword) {
         this.revokeUserTokens(userId)
-        const hash = await bcrypt.hash(newPassword, this.salt);
+        const hash = await bcrypt.hashSync(newPassword, this.rounds);
         return await this.User.findOneAndUpdate({ _id: userId }, { password: hash }, { new: true })
 
     }
