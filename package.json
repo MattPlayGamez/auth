@@ -1,9 +1,9 @@
 {
   "name": "seamless-auth",
-  "version": "3.8.4",
+  "version": "3.8.5",
   "description": "A full fledged authentication system...",
   "type": "commonjs",
-  "main": "memory.js",
+  "main": "file.js",
   "scripts": {
     "start": "node test/test.js",
     "test": "npx jest --forceExit *.test.js"

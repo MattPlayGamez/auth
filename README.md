@@ -41,6 +41,7 @@ You can add as many fields as you need. (e.g., phone number, address)
 
 ```javascript
 const DB_SCHEMA = {
+    username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     loginAttempts: { type: Number, default: 0 },
@@ -54,31 +55,51 @@ const DB_SCHEMA = {
 Initialize the authenticator with the required parameters:
 
 ```javascript
+// File / Memory Storage
+const auth = new Authenticator();
 
+// MongoDB Storage
 const auth = new Authenticator(
-QR_LABEL,
-SALT,
-JWT_SECRET_KEY,
-JWT_OPTIONS,
-MAX_LOGIN_ATTEMPTS,
-USER_OBJECT // Only for memory authentication
-DB_CONNECTION_STRING, //for MONGODB or DB_FILE_PATH for file storage
-DB_SCHEMA, // for MONGODB schema  
-DB_PASSWORD // only for file storage
-);
-```
+    MONGODB_STRING,
+    USER_SCHEMA
+)
 
+// There are a lot more options available below which are not required.
+```
+## Options
+These contain the default inputs and CAN be changed by `auth.QR_LABEL = "something else";`
+- `this.QR_LABEL = "Authenticator";`
+- `this.rounds = 12;`
+- `this.JWT_SECRET_KEY = "changeme";`
+- `this.JWT_OPTIONS = { expiresIn: "1h" };`
+- `this.maxLoginAttempts = 13;`
+- `this.maxLoginAttempts = this.maxLoginAttempts - 2;`
+- `this.DB_FILE_PATH = "./users.db";`
+- `this.DB_PASSWORD = "changeme";`
+- `this.users = [];`
+- `this.OTP_ENCODING = 'base32';`
+- `this.lockedText = "User is locked";`
+- `this.OTP_WINDOW = 1;` // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
+- `this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code";`
+- `this.REMOVED_USER_TEXT = "User has been removed";`
+- `this.USERNAME_ALREADY_EXISTS_TEXT = "This username already exists";`
+- `this.EMAIL_ALREADY_EXISTS_TEXT = "This email already exists";`
+- `this.USERNAME_IS_REQUIRED="Username is required";`
+- `this.ALLOW_DB_DUMP = false;` // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
 
 ## API
 
 ### `register(userObject)`
 Registers a new user.
 
-### `login(email, password, twoFactorCode || null)`
+### `login(username, password, twoFactorCode || null)`
 Logs in a user.
 
 ### `getInfoFromUser(userId)`
 Retrieves user information.
+
+### `getInfoFromCustom(searchType, value)`
+Retrieves user information based on a custom search criteria (like email, username,...)
 
 ### `verifyToken(token)`
 Verifies a JWT token.
