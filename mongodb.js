@@ -18,7 +18,7 @@ class Authenticator {
         this.QR_LABEL = "Authenticator";
         this.rounds = 12;
         this.JWT_SECRET_KEY = "changeme";
-        this.JWT_OPTIONS = { expiresIn: "1h" };
+        this.JWT_OPTIONS = {expiresIn: "1h"};
         this.maxLoginAttempts = 3;
         mongoose.connect(MONGODB_CONNECTION_STRING);
         this.User = mongoose.model('User', userSchema)
@@ -28,6 +28,9 @@ class Authenticator {
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
         this.REMOVED_USER_TEXT = "User has been removed"
         this.USER_ALREADY_EXISTS_TEXT = "User already exists"
+        this.USERNAME_ALREADY_EXISTS_TEXT = "This username already exists"
+        this.EMAIL_ALREADY_EXISTS_TEXT = "This email already exists"
+        this.USERNAME_IS_REQUIRED = "Username is required"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
     }
 
@@ -39,6 +42,9 @@ class Authenticator {
      * @throws {Error} - any other error
      */
     async register(userObject) {
+        if (!userObject.username) return this.USERNAME_IS_REQUIRED
+        const existingUser = await this.User.findOne({username: userObject.username});
+        if (existingUser) return this.USERNAME_ALREADY_EXISTS_TEXT
         try {
             const hash = await bcrypt.hashSync(userObject.password, this.rounds);
             let newUser = new this.User({
@@ -48,7 +54,7 @@ class Authenticator {
             });
 
             if (userObject.wants2FA) {
-                const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
+                const secret = speakeasy.generateSecret({name: this.QR_LABEL});
                 const otpauth_url = speakeasy.otpauthURL({
                     secret: secret.base32,
                     label: this.QR_LABEL,
@@ -77,14 +83,14 @@ class Authenticator {
 
     /**
      * Logs in a user
-     * @param {string} email - email address of the user
+     * @param {string} username - username of the user
      * @param {string} password - password of the user
      * @param {number} twoFactorCode - 2FA code if user has 2FA enabled
-     * @returns {object} - logged in user object with JWT or qrCode if user has 2FA enabled
+     * @returns {object} - logged-in user object with JWT or qrCode if user has 2FA enabled
      * @throws {Error} - any other error
      */
-    async login(email, password, twoFactorCode) {
-        const user = await this.User.findOne({ email });
+    async login(username, password, twoFactorCode) {
+        const user = await this.User.findOne({username: username});
         if (!user) return null;
 
         try {
@@ -99,7 +105,8 @@ class Authenticator {
                     await this.changeLoginAttempts(user._id, newAttempts);
                 }
                 return null;
-            };
+            }
+            ;
             if (user) {
                 if (user.locked) return this.lockedText
                 if (user.wants2FA) {
@@ -111,7 +118,7 @@ class Authenticator {
                             encoding: this.OTP_ENCODING
                         });
                         const qrCode = await QRCode.toDataURL(otpauth_url);
-                        return { qrCode };
+                        return {qrCode};
                     }
 
                     const verified = speakeasy.totp.verify({
@@ -123,16 +130,21 @@ class Authenticator {
                     if (!verified) return this.INVALID_2FA_CODE_TEXT;
 
                 }
-                const jwt_token = jwt.sign({ _id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+                const jwt_token = jwt.sign({
+                    _id: user._id,
+                    version: user.jwt_version
+                }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
 
                 this.changeLoginAttempts(user._id, 0)
+                console.log({...user.toObject(), jwt_token})
 
-                return { ...user.toObject(), jwt_token };
+                return {...user.toObject(), jwt_token};
             }
         } catch (err) {
             throw err;
         }
     }
+
     /**
      * Generates a one time password and stores it in the user record. This is used
      * for passwordless login, where the user will receive this code and can login
@@ -145,14 +157,15 @@ class Authenticator {
     async registerEmailSignin(email) {
         let emailCode = Crypto.randomUUID()
         try {
-            if (await this.User.findOne({ email: email }).locked) return this.lockedText
-            await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
-            return { emailCode }
+            if (await this.User.findOne({email: email}).locked) return this.lockedText
+            await this.User.findOneAndUpdate({email: email}, {emailCode: emailCode})
+            return {emailCode}
 
         } catch (error) {
             console.error(error)
         }
     }
+
     /**
      * Verifies a emailCode and returns a valid JWT token for the user
      * @param {string} emailCode - the emailCode to verify
@@ -162,19 +175,20 @@ class Authenticator {
     async verifyEmailSignin(emailCode) {
         if (!emailCode || typeof emailCode !== 'string') return null;
 
-        const user = await this.User.findOne({ emailCode });
+        const user = await this.User.findOne({emailCode});
         if (!user) return null;
 
-        await this.User.findOneAndUpdate({ emailCode }, { emailCode: "" });
+        await this.User.findOneAndUpdate({emailCode}, {emailCode: ""});
 
         const jwt_token = jwt.sign(
-            { _id: user._id, version: user.jwt_version },
+            {_id: user._id, version: user.jwt_version},
             this.JWT_SECRET_KEY,
             this.JWT_OPTIONS
         );
 
-        return { ...user.toObject(), jwt_token };
+        return {...user.toObject(), jwt_token};
     }
+
     /**
      * Retrieves user information based on the user ID
      * @param {string} userId - the user ID to retrieve information
@@ -182,16 +196,18 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async getInfoFromUser(userId) {
-        return await this.User.findOne({ _id: userId });
+        return await this.User.findOne({_id: userId});
     }
+
     /**
      * Retrieves user information based on the user's email address
-     * @param {string} email - the email address to retrieve information
+     * @param {string} searchType -Type type to search for
+     * @param {string} value - The value to search for
      * @returns {object} - an object with the user information
      * @throws {Error} - any error that occurs during the process
      */
-    async getInfoFromEmail(email) {
-        return await this.User.findOne({ email: email });
+    async getInfoFromCustom(searchType, value) {
+        return this.User.findOne({[searchType]: value});
     }
 
     /**
@@ -214,6 +230,7 @@ class Authenticator {
 
         }
     }
+
     /**
      * Verifies a 2FA code for a user
      * @param {string} userId - the user ID to verify the 2FA code for
@@ -221,7 +238,7 @@ class Authenticator {
      * @returns {boolean} - true if the code is valid, false otherwise
      */
     async verify2FA(userId, twofactorcode) {
-        let user = await this.User.findOne({ _id: userId })
+        let user = await this.User.findOne({_id: userId})
         if (!user) return null
         const verified = speakeasy.totp.verify({
             secret: user.secret2FA,
@@ -232,6 +249,7 @@ class Authenticator {
         return verified;
 
     }
+
     /**
      * Resets the password of a user
      * @param {string} userId - the user ID to reset the password for
@@ -242,9 +260,10 @@ class Authenticator {
     async resetPassword(userId, newPassword) {
         this.revokeUserTokens(userId)
         const hash = await bcrypt.hashSync(newPassword, this.rounds);
-        return await this.User.findOneAndUpdate({ _id: userId }, { password: hash }, { new: true })
+        return await this.User.findOneAndUpdate({_id: userId}, {password: hash}, {new: true})
 
     }
+
     /**
      * Changes the number of login attempts for a user
      * @param {string} userId - the user ID to change the login attempts for
@@ -253,9 +272,10 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async changeLoginAttempts(userId, attempts) {
-        return await this.User.findOneAndUpdate({ _id: userId }, { loginAttempts: attempts }, { new: true });
+        return await this.User.findOneAndUpdate({_id: userId}, {loginAttempts: attempts}, {new: true});
 
     }
+
     /**
      * Locks a user from logging in
      * @param {string} userId - the user ID to lock
@@ -263,8 +283,9 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async lockUser(userId) {
-        return await this.User.findOneAndUpdate({ _id: userId }, { locked: true }, { new: true });
+        return await this.User.findOneAndUpdate({_id: userId}, {locked: true}, {new: true});
     }
+
     /**
      * Unlocks a user from logging in
      * @param {string} userId - the user ID to unlock
@@ -272,7 +293,7 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async unlockUser(userId) {
-        return await this.User.findOneAndUpdate({ _id: userId }, { locked: false }, { new: true });
+        return await this.User.findOneAndUpdate({_id: userId}, {locked: false}, {new: true});
     }
 
     /**
@@ -282,9 +303,10 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async revokeUserTokens(userId) {
-        let newVersion = (await this.User.findOne({ _id: userId })).jwt_version + 1
-        return await this.User.findOneAndUpdate({ _id: userId }, { jwt_version: newVersion }, { new: false });
+        let newVersion = (await this.User.findOne({_id: userId})).jwt_version + 1
+        return await this.User.findOneAndUpdate({_id: userId}, {jwt_version: newVersion}, {new: false});
     }
+
     /**
      * Removes 2FA for a user
      * @param {string} userId - the user ID to remove 2FA for
@@ -293,11 +315,12 @@ class Authenticator {
      */
     async remove2FA(userId) {
         return await this.User.findOneAndUpdate(
-            { _id: userId },
-            { wants2FA: false, secret2FA: "", qrCode: "" },
-            { new: true }
+            {_id: userId},
+            {wants2FA: false, secret2FA: "", qrCode: ""},
+            {new: true}
         );
     }
+
     /**
      * Adds 2FA for a user
      * @param {string} userId - the user ID to add 2FA for
@@ -305,10 +328,10 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async add2FA(userId) {
-        const user = await this.User.findOne({ _id: userId });
+        const user = await this.User.findOne({_id: userId});
         if (!user) return null;
 
-        const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
+        const secret = speakeasy.generateSecret({name: this.QR_LABEL});
         const otpauth_url = speakeasy.otpauthURL({
 
             secret: secret.base32,
@@ -318,11 +341,12 @@ class Authenticator {
         const qrCode = await QRCode.toDataURL(otpauth_url);
 
         return await this.User.findOneAndUpdate(
-            { _id: userId },
-            { wants2FA: true, secret2FA: secret.base32, qrCode },
-            { new: true }
+            {_id: userId},
+            {wants2FA: true, secret2FA: secret.base32, qrCode},
+            {new: true}
         );
     }
+
     /**
      * Removes a user from the database
      * @param {string} userId - the user ID to remove
@@ -331,12 +355,13 @@ class Authenticator {
      */
     async removeUser(userId) {
         try {
-            await this.User.findOneAndDelete({ _id: userId });
+            await this.User.findOneAndDelete({_id: userId});
             return this.REMOVED_USER_TEXT
         } catch (error) {
             return `User with ID ${userId} couldn't be removed`
         }
     }
+
     /**
      * Retrieves all users from the database
      * @returns {object[]} - an array of user objects

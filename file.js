@@ -1,4 +1,4 @@
-// Local file is not written to disk
+// Local file is written to disk
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
@@ -64,7 +64,9 @@ class Authenticator {
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
         this.REMOVED_USER_TEXT = "User has been removed"
-        this.USER_ALREADY_EXISTS_TEXT = "User already exists"
+        this.USERNAME_ALREADY_EXISTS_TEXT = "This username already exists"
+        this.EMAIL_ALREADY_EXISTS_TEXT = "This email already exists"
+        this.USERNAME_IS_REQUIRED="Username is required"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
 
         // Override methods to update file when users array changes
@@ -80,12 +82,22 @@ class Authenticator {
 
 
 
-    /**
-     * Registers a new user
-     * @param {object} userObject - object with required keys: email, password, wants2FA, you can add custom keys too
-     * @returns {object} - registered user object, or "User already exists" if user already exists
-     * @throws {Error} - any other error
-     */
+
+/**
+ * Registers a new user.
+ *
+ * Initializes user object with default values if not provided, including login attempts,
+ * locked status, and unique ID. ashes the password and optionally generates a 2FA secret
+ * and QR code if 2FA is requested. Checks for existing user by email and returns an
+ * appropriate message if user already exists. Updates users list and returns the
+ * registered user object.
+ *
+ * @param {object} userObject - The user details containing required keys:
+ *                              username, email, password, wants2FA. Custom keys can be added like.
+ *                              If email is null or undefined, they can't use login by email.
+ * @returns {object|string} - The registered user object or a string "User already exists".
+ * @throws {Error} - Logs any error encountered during registration process.
+ */
     async register(userObject) {
         if (!userObject.loginAttempts) userObject.loginAttempts = 0
         if (!userObject.locked) userObject.locked = false
@@ -110,27 +122,30 @@ class Authenticator {
             userObject.password = hash;
             userObject.jwt_version = 1
 
+            if (!userObject.username) return this.USERNAME_IS_REQUIRED
 
-            if (this.users.find(u => u.email === userObject.email)) return this.USER_ALREADY_EXISTS_TEXT
+            if (this.users.find(u => u.username === userObject.username)) return this.USERNAME_ALREADY_EXISTS_TEXT
+            if (this.users.find(u => u.email === userObject.email)) return this.EMAIL_ALREADY_EXISTS_TEXT
             this.users.push(userObject);
             return returnedUser;
         } catch (err) {
             console.log(err)
+
         }
 
     }
 
     /**
      * Logs in a user
-     * @param {string} email - email address of user
+     * @param {string} username - Username of user
      * @param {string} password - password of user
      * @param {number} twoFactorCode - 2FA code of user or put null if user didn't provide a 2FA
      * @returns {object} - user object with jwt_token, or null if login was unsuccessful, or "User is locked" if user is locked
      * @throws {Error} - any other error
      */
-    async login(email, password, twoFactorCode) {
-        const account = this.users.find(u => u.email === email);
-        if (!email) return null;
+    async login(username, password, twoFactorCode) {
+        const account = this.users.find(u => u.username === username);
+        if (!username) return null;
         if (!password) return null;
 
         try {
@@ -138,10 +153,10 @@ class Authenticator {
 
             if (!result) {
 
-                (account.loginAttempts >= this.maxLoginAttempts) ? this.lockUser(account.id) : await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
+                (account.loginAttempts >= this.maxLoginAttempts) ? await this.lockUser(account.id) : await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
 
                 return null
-            };
+            }
             if (account) {
                 if (account.locked) return this.lockedText
                 if (account.wants2FA) {
@@ -160,7 +175,7 @@ class Authenticator {
 
                 }
                 const jwt_token = jwt.sign({ _id: account._id, version: account.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
-                this.changeLoginAttempts(account._id, 0)
+                await this.changeLoginAttempts(account._id, 0)
 
                 return { ...account, jwt_token };
             }
@@ -199,7 +214,7 @@ class Authenticator {
      */
     async verifyEmailSignin(emailCode) {
         if (emailCode === null) return null
-        const user = await this.users.find(user => user.emailCode == emailCode);
+        const user = await this.users.find(user => user.emailCode === emailCode);
         if (!user) return null;
         const userIndex = this.users.findIndex(u => u.emailCode === emailCode);
         if (userIndex !== -1) {
@@ -220,15 +235,16 @@ class Authenticator {
         if (!user) return null;
         return user
     }
-    /**
-     * Retrieves user information based on the user email
-     * @param {string} email - the email to retrieve information
-     * @returns {object} - an object with the user information
-     * @throws {Error} - any error that occurs during the process
-     */
 
-    getInfoFromEmail(email) {
-        const user = this.users.find(u => u.email === email);
+    /**
+     * Retrieves user information based on a custom search criteria
+     * @param {string} searchType - the field name to search by (e.g. username, email, etc.).
+     *                              It will only find the first element that corresponds to the specified value
+     * @param {string} value - the value to match in the specified field
+     * @returns {object} - an object with the user information or null if not found
+     */
+    getInfoFromCustom(searchType, value) {
+        const user = this.users.find(u => u[searchType] === value);
         if (!user) return null;
         return user
     }

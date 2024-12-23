@@ -3,13 +3,16 @@ const Authenticator = require('./memory.js')
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 
+
 const mockUser = {
+    username: "test",
     email: "test@example.com",
     password: "password123",
     wants2FA: false,
 };
 
 const mockUser2FA = {
+    username: "test2",
     email: "test2@example.com",
     password: "password123",
     wants2FA: true,
@@ -27,9 +30,10 @@ describe('Authenticator Class Tests', () => {
     let emailCode = ""
 
     beforeAll(async () => {
-        authenticator = new Authenticator()
-        authenticator.JWT_SECRET_KEY = JWT_SECRET
+        authenticator = new Authenticator();
+        authenticator.rounds = 10
         authenticator.ALLOW_DB_DUMP = true
+        authenticator.JWT_SECRET_KEY = JWT_SECRET
 
     });
 
@@ -37,20 +41,24 @@ describe('Authenticator Class Tests', () => {
 
     test('User Registration without 2FA', async () => {
         const result = await authenticator.register({
+            username: "test",
             email: "test@example.com",
             password: "password123",
             wants2FA: false,
         });
+        expect(result.username).toBe("test");
         expect(result.email).toBe(mockUser.email);
         expect(result.jwt_version).toBe(1);
         expect(result.wants2FA).toBe(false);
     });
     test('User Registration with 2FA', async () => {
         const result = await authenticator.register({
+            username: "test2",
             email: "test2@example.com",
             password: "password123",
             wants2FA: true,
         });
+        expect(result.username).toBe("test2");
         expect(result.email).toBe(mockUser2FA.email);
         expect(result.jwt_version).toBe(1);
         expect(result.wants2FA).toBe(true);
@@ -60,7 +68,7 @@ describe('Authenticator Class Tests', () => {
     });
 
     test('User Login', async () => {
-        const loginResult = await authenticator.login(mockUser.email, mockUser.password);
+        const loginResult = await authenticator.login(mockUser.username, mockUser.password);
         userID = loginResult._id
         expect(loginResult.jwt_token).toBeDefined();
         expect(jwt.verify(loginResult.jwt_token, JWT_SECRET)).toBeTruthy();
@@ -72,38 +80,38 @@ describe('Authenticator Class Tests', () => {
             secret: SECRET2FA,
             encoding: 'base32',
         })
-        const loginResult = await authenticator.login(mockUser2FA.email, mockUser2FA.password, twoFactorCode);
+        const loginResult = await authenticator.login(mockUser2FA.username, mockUser2FA.password, twoFactorCode);
         userID2FA = loginResult._id
         expect(loginResult.jwt_token).toBeDefined();
         expect(jwt.verify(loginResult.jwt_token, JWT_SECRET)).toBeTruthy();
     });
 
     test('User Login with invalid 2FA ', async () => {
-        const loginResult = await authenticator.login(mockUser2FA.email, mockUser2FA.password, 100000);
+        const loginResult = await authenticator.login(mockUser2FA.username, mockUser2FA.password, 100000);
         expect(loginResult.jwt_token).not.toBeDefined();
     });
     test('User Login with no 2FA (for a 2FA user) ', async () => {
-        const loginResult = await authenticator.login(mockUser2FA.email, mockUser2FA.password, 100000);
+        const loginResult = await authenticator.login(mockUser2FA.username, mockUser2FA.password, 100000);
         expect(loginResult.jwt_token).not.toBeDefined();
     });
 
     test('Login with incorrect password', async () => {
-        const result = await authenticator.login(mockUser.email, 'wrongpassword');
+        const result = await authenticator.login(mockUser.username, 'wrongpassword');
         expect(result).toBe(null);
     });
 
     test('Get Info From User', async () => {
         const info = await authenticator.getInfoFromUser(userID)
-        expect(info.email).toBe(mockUser.email);
+        expect(info.username).toBe(mockUser.username);
     })
 
-    test('Get Info From Email', async () => {
-        const info = await authenticator.getInfoFromEmail(mockUser.email)
+    test('Get Info From Custom Property', async () => {
+        const info = await authenticator.getInfoFromCustom("email", mockUser.email)
         expect(info.email).toBe(mockUser.email);
     })
 
     test('Verify JWT Token', async () => {
-        const loginResult = await authenticator.login(mockUser.email, mockUser.password);
+        const loginResult = await authenticator.login(mockUser.username, mockUser.password);
         const tokenVerification = await authenticator.verifyToken(loginResult.jwt_token);
         expect(tokenVerification).toBeDefined()
     });
@@ -142,9 +150,9 @@ describe('Authenticator Class Tests', () => {
     })
 
     test('Lock user after max login attempts', async () => {
-        await authenticator.login(mockUser.email, 'wrongpassword');
-        await authenticator.login(mockUser.email, 'wrongpassword');
-        const result = await authenticator.login(mockUser.email, 'wrongpassword');
+        await authenticator.login(mockUser.username, 'wrongpassword');
+        await authenticator.login(mockUser.username, 'wrongpassword');
+        const result = await authenticator.login(mockUser.username, 'wrongpassword');
         if (result === 'User is locked') {
             expect(result).toBe('User is locked');
         } else {
@@ -187,13 +195,14 @@ describe('Authenticator Class Tests', () => {
 
     test('Check if user is authenticated', async () => {
         await authenticator.register({
-            email: "test@test.test",
-            password: "test",
+            username: "test3",
+            email: "test3@test.test",
+            password: "test3",
             wants2FA: false,
         })
-        let user = await authenticator.login("test@test.test", "test")
+        let user = await authenticator.login("test3", "test3")
         console.log(user)
-        
+
         let req = { headers: { "host": "127.0.0.1:3000", "connection": "keep-alive", "cache-control": "max-age=0", "sec-ch-ua": "\"Chromium\";v=\"130\", \"Brave\";v=\"130\", \"Not?A_Brand\";v=\"99\"", "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Windows\"", "dnt": "1", "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36", "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8", "sec-gpc": "1", "accept-language": "nl-NL,nl", "sec-fetch-site": "same-origin", "sec-fetch-mode": "navigate", "sec-fetch-user": "?1", "sec-fetch-dest": "document", "referer": "http://127.0.0.1:3000/login", "accept-encoding": "gzip, deflate, br, zstd", "cookie": `token=${user.jwt_token}`, "if-none-match": "W/\"14-VDnz0WejlS4iemsxsVhn1S8IIDE\"" } }
         let response = await authenticator.isAuthenticated(req)
         expect(response).toBe(true)
@@ -210,10 +219,11 @@ describe('Authenticator Class Tests', () => {
         expect(response).toBe("User has been removed")
     });
 
-    
+
 
     afterAll(async () => {
-        console.log(await authenticator.dumpDB())
+        authenticator.users = [];
+        console.log("Done")
     });
 
 });
