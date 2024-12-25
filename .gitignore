@@ -6,3 +6,4 @@ test/test.js
 .env
 app.db
 temp/
+.idea/
