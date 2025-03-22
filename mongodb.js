@@ -18,7 +18,7 @@ class Authenticator {
         this.QR_LABEL = "Authenticator";
         this.rounds = 12;
         this.JWT_SECRET_KEY = "changeme";
-        this.JWT_OPTIONS = {expiresIn: "1h"};
+        this.JWT_OPTIONS = { expiresIn: "1h" };
         this.maxLoginAttempts = 3;
         mongoose.connect(MONGODB_CONNECTION_STRING);
         this.User = mongoose.model('User', userSchema)
@@ -42,10 +42,11 @@ class Authenticator {
      * @throws {Error} - any other error
      */
     async register(userObject) {
-        if (!userObject.username) return this.USERNAME_IS_REQUIRED
-        const existingUser = await this.User.findOne({username: userObject.username});
-        if (existingUser) return this.USERNAME_ALREADY_EXISTS_TEXT
         try {
+
+            if (!userObject.username) return this.USERNAME_IS_REQUIRED
+            const existingUser = await this.User.findOne({ username: userObject.username });
+            if (existingUser) return this.USERNAME_ALREADY_EXISTS_TEXT
             const hash = await bcrypt.hashSync(userObject.password, this.rounds);
             let newUser = new this.User({
                 ...userObject,
@@ -54,7 +55,7 @@ class Authenticator {
             });
 
             if (userObject.wants2FA) {
-                const secret = speakeasy.generateSecret({name: this.QR_LABEL});
+                const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
                 const otpauth_url = speakeasy.otpauthURL({
                     secret: secret.base32,
                     label: this.QR_LABEL,
@@ -90,10 +91,11 @@ class Authenticator {
      * @throws {Error} - any other error
      */
     async login(username, password, twoFactorCode) {
-        const user = await this.User.findOne({username: username});
-        if (!user) return null;
-
         try {
+
+            const user = await this.User.findOne({ username: username });
+            if (!user) return null;
+
             const result = await bcrypt.compare(password, user.password);
             if (!result) {
 
@@ -118,7 +120,7 @@ class Authenticator {
                             encoding: this.OTP_ENCODING
                         });
                         const qrCode = await QRCode.toDataURL(otpauth_url);
-                        return {qrCode};
+                        return { qrCode };
                     }
 
                     const verified = speakeasy.totp.verify({
@@ -136,9 +138,9 @@ class Authenticator {
                 }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
 
                 this.changeLoginAttempts(user._id, 0)
-                console.log({...user.toObject(), jwt_token})
+                console.log({ ...user.toObject(), jwt_token })
 
-                return {...user.toObject(), jwt_token};
+                return { ...user.toObject(), jwt_token };
             }
         } catch (err) {
             throw err;
@@ -155,11 +157,12 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async registerEmailSignin(email) {
-        let emailCode = Crypto.randomUUID()
         try {
-            if (await this.User.findOne({email: email}).locked) return this.lockedText
-            await this.User.findOneAndUpdate({email: email}, {emailCode: emailCode})
-            return {emailCode}
+
+            let emailCode = Crypto.randomUUID()
+            if (await this.User.findOne({ email: email }).locked) return this.lockedText
+            await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
+            return { emailCode }
 
         } catch (error) {
             console.error(error)
@@ -173,20 +176,25 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async verifyEmailSignin(emailCode) {
-        if (!emailCode || typeof emailCode !== 'string') return null;
+        try {
 
-        const user = await this.User.findOne({emailCode});
-        if (!user) return null;
+            if (!emailCode || typeof emailCode !== 'string') return null;
 
-        await this.User.findOneAndUpdate({emailCode}, {emailCode: ""});
+            const user = await this.User.findOne({ emailCode });
+            if (!user) return null;
 
-        const jwt_token = jwt.sign(
-            {_id: user._id, version: user.jwt_version},
-            this.JWT_SECRET_KEY,
-            this.JWT_OPTIONS
-        );
+            await this.User.findOneAndUpdate({ emailCode }, { emailCode: "" });
 
-        return {...user.toObject(), jwt_token};
+            const jwt_token = jwt.sign(
+                { _id: user._id, version: user.jwt_version },
+                this.JWT_SECRET_KEY,
+                this.JWT_OPTIONS
+            );
+
+            return { ...user.toObject(), jwt_token };
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -196,7 +204,11 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async getInfoFromUser(userId) {
-        return await this.User.findOne({_id: userId});
+        try {
+            return await this.User.findOne({ _id: userId });
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -207,7 +219,11 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async getInfoFromCustom(searchType, value) {
-        return this.User.findOne({[searchType]: value});
+        try {
+            return await this.User.findOne({ [searchType]: value });
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -238,16 +254,19 @@ class Authenticator {
      * @returns {boolean} - true if the code is valid, false otherwise
      */
     async verify2FA(userId, twofactorcode) {
-        let user = await this.User.findOne({_id: userId})
-        if (!user) return null
-        const verified = speakeasy.totp.verify({
-            secret: user.secret2FA,
-            encoding: this.OTP_ENCODING,
-            token: twofactorcode,
-            window: this.OTP_WINDOW
-        });
-        return verified;
-
+        try {
+            let user = await this.User.findOne({ _id: userId })
+            if (!user) return null
+            const verified = speakeasy.totp.verify({
+                secret: user.secret2FA,
+                encoding: this.OTP_ENCODING,
+                token: twofactorcode,
+                window: this.OTP_WINDOW
+            });
+            return verified;
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -258,10 +277,13 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async resetPassword(userId, newPassword) {
-        this.revokeUserTokens(userId)
-        const hash = await bcrypt.hashSync(newPassword, this.rounds);
-        return await this.User.findOneAndUpdate({_id: userId}, {password: hash}, {new: true})
-
+        try {
+            this.revokeUserTokens(userId)
+            const hash = await bcrypt.hashSync(newPassword, this.rounds);
+            return await this.User.findOneAndUpdate({ _id: userId }, { password: hash }, { new: true })
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -272,8 +294,11 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async changeLoginAttempts(userId, attempts) {
-        return await this.User.findOneAndUpdate({_id: userId}, {loginAttempts: attempts}, {new: true});
-
+        try {
+            return await this.User.findOneAndUpdate({ _id: userId }, { loginAttempts: attempts }, { new: true });
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -283,7 +308,11 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async lockUser(userId) {
-        return await this.User.findOneAndUpdate({_id: userId}, {locked: true}, {new: true});
+        try {
+            return await this.User.findOneAndUpdate({ _id: userId }, { locked: true }, { new: true });
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -293,7 +322,11 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async unlockUser(userId) {
-        return await this.User.findOneAndUpdate({_id: userId}, {locked: false}, {new: true});
+        try {
+            return await this.User.findOneAndUpdate({ _id: userId }, { locked: false }, { new: true });
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -303,8 +336,12 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async revokeUserTokens(userId) {
-        let newVersion = (await this.User.findOne({_id: userId})).jwt_version + 1
-        return await this.User.findOneAndUpdate({_id: userId}, {jwt_version: newVersion}, {new: false});
+        try {
+            let newVersion = (await this.User.findOne({ _id: userId })).jwt_version + 1
+            return await this.User.findOneAndUpdate({ _id: userId }, { jwt_version: newVersion }, { new: false });
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -314,11 +351,15 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async remove2FA(userId) {
-        return await this.User.findOneAndUpdate(
-            {_id: userId},
-            {wants2FA: false, secret2FA: "", qrCode: ""},
-            {new: true}
-        );
+        try {
+            return await this.User.findOneAndUpdate(
+                { _id: userId },
+                { wants2FA: false, secret2FA: "", qrCode: "" },
+                { new: true }
+            );
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -328,23 +369,27 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async add2FA(userId) {
-        const user = await this.User.findOne({_id: userId});
-        if (!user) return null;
+        try {
+            const user = await this.User.findOne({ _id: userId });
+            if (!user) return null;
 
-        const secret = speakeasy.generateSecret({name: this.QR_LABEL});
-        const otpauth_url = speakeasy.otpauthURL({
+            const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
+            const otpauth_url = speakeasy.otpauthURL({
 
-            secret: secret.base32,
-            label: this.QR_LABEL,
-            encoding: this.OTP_ENCODING
-        });
-        const qrCode = await QRCode.toDataURL(otpauth_url);
+                secret: secret.base32,
+                label: this.QR_LABEL,
+                encoding: this.OTP_ENCODING
+            });
+            const qrCode = await QRCode.toDataURL(otpauth_url);
 
-        return await this.User.findOneAndUpdate(
-            {_id: userId},
-            {wants2FA: true, secret2FA: secret.base32, qrCode},
-            {new: true}
-        );
+            return await this.User.findOneAndUpdate(
+                { _id: userId },
+                { wants2FA: true, secret2FA: secret.base32, qrCode },
+                { new: true }
+            );
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     /**
@@ -355,9 +400,10 @@ class Authenticator {
      */
     async removeUser(userId) {
         try {
-            await this.User.findOneAndDelete({_id: userId});
+            await this.User.findOneAndDelete({ _id: userId });
             return this.REMOVED_USER_TEXT
         } catch (error) {
+            console.error(error)
             return `User with ID ${userId} couldn't be removed`
         }
     }
@@ -369,20 +415,22 @@ class Authenticator {
      */
     async dumpDB() {
         if (this.ALLOW_DB_DUMP === false) return "DB dumping is disabled"
-        return await this.User.find()
+        try {
+            return await this.User.find()
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
 
-    async isAuthenticated(req) {
+    /**
+     * Checks if a user is authenticated
+     * @param {string} token - the token from the user
+     * @returns {boolean} - true if the user is authenticated, false otherwise
+     * @throws {Error} - any error that occurs during the process
+     */
+    async isAuthenticated(token) {
         try {
-            const rawCookies = req.headers.cookie || '';
-            const cookies = {};
-            rawCookies.split(';').forEach(cookie => {
-                const [key, value] = cookie.trim().split('=');
-                cookies[key] = decodeURIComponent(value);
-            });
-
-            const token = cookies.token;
-            console.log(token)
             let user = await this.verifyToken(token)
             console.log(user)
             if (!token) {
@@ -391,8 +439,7 @@ class Authenticator {
             if (!user) {
                 return false;
             }
-            req.user = user;
-            return true
+            return user
         } catch (err) {
             console.log(err)
         }

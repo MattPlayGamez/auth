@@ -16,7 +16,7 @@ class Authenticator {
         this.rounds = 12;
         this.JWT_SECRET_KEY = "changeme";
         this.JWT_OPTIONS = { expiresIn: "1h" };
-        this.maxLoginAttempts = 13
+        this.maxLoginAttempts = 3
         this.maxLoginAttempts = this.maxLoginAttempts - 2;
         this.DB_FILE_PATH = "./users.db"
         this.DB_PASSWORD = "changeme"
@@ -28,7 +28,7 @@ class Authenticator {
         this.REMOVED_USER_TEXT = "User has been removed"
         this.USERNAME_ALREADY_EXISTS_TEXT = "This username already exists"
         this.EMAIL_ALREADY_EXISTS_TEXT = "This email already exists"
-        this.USERNAME_IS_REQUIRED="Username is required"
+        this.USERNAME_IS_REQUIRED = "Username is required"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
 
 
@@ -53,13 +53,14 @@ class Authenticator {
      * @throws {Error} - Logs any error encountered during registration process.
      */
     async register(userObject) {
-        if (!userObject.loginAttempts) userObject.loginAttempts = 0
-        if (!userObject.locked) userObject.locked = false
-        if (!userObject._id) userObject._id = uuid.v4()
-        userObject.locked = false
-        userObject.emailCode = null
-        let returnedUser = userObject
         try {
+            if (!userObject.loginAttempts) userObject.loginAttempts = 0
+            if (!userObject.locked) userObject.locked = false
+            if (!userObject._id) userObject._id = uuid.v4()
+            userObject.locked = false
+            userObject.emailCode = null
+            let returnedUser = userObject
+
             const hash = await bcrypt.hash(userObject.password, this.rounds);
             if (userObject.wants2FA) {
                 const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
@@ -83,8 +84,8 @@ class Authenticator {
             this.users.push(userObject);
             return returnedUser;
         } catch (err) {
-            console.log(err)
-
+            console.error(err)
+            return undefined
         }
 
     }
@@ -98,11 +99,12 @@ class Authenticator {
      * @throws {Error} - any other error
      */
     async login(username, password, twoFactorCode) {
-        const account = this.users.find(u => u.username === username);
-        if (!username) return null;
-        if (!password) return null;
-
         try {
+            const account = this.users.find(u => u.username === username);
+            if (!username) return null;
+            if (!password) return null;
+
+
             const result = await bcrypt.compare(password, account.password);
 
             if (!result) {
@@ -134,7 +136,8 @@ class Authenticator {
                 return { ...account, jwt_token };
             }
         } catch (err) {
-            throw err;
+            console.error(err)
+            return undefined
         }
     }
     /**
@@ -144,8 +147,9 @@ class Authenticator {
      * @throws {Error} - any other error
      */
     async registerEmailSignin(email) {
-        let emailCode = Crypto.randomUUID()
         try {
+            let emailCode = Crypto.randomUUID()
+
             const user = this.users.find(u => u.email === email);
             if (!user) return null;
             if (user.locked) return this.lockedText;
@@ -158,6 +162,7 @@ class Authenticator {
 
         } catch (error) {
             console.error(error)
+            return undefined
         }
     }
     /**
@@ -167,16 +172,21 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async verifyEmailSignin(emailCode) {
-        if (emailCode === null) return null
-        const user = await this.users.find(user => user.emailCode === emailCode);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u.emailCode === emailCode);
-        if (userIndex !== -1) {
-            this.users[userIndex].emailCode = null;
+        try {
+            if (emailCode === null) return null
+            const user = await this.users.find(user => user.emailCode === emailCode);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u.emailCode === emailCode);
+            if (userIndex !== -1) {
+                this.users[userIndex].emailCode = null;
+            }
+            const jwt_token = jwt.sign({ _id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
+            this.users.push()
+            return { ...user, jwt_token };
+        } catch (error) {
+            console.error(error)
+            return undefined
         }
-        const jwt_token = jwt.sign({ _id: user._id, version: user.jwt_version }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
-        this.users.push()
-        return { ...user, jwt_token };
     }
     /**
      * Retrieves user information based on the user ID
@@ -185,9 +195,14 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     getInfoFromUser(userId) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        return user
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            return user
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
 
     /**
@@ -198,9 +213,14 @@ class Authenticator {
      * @returns {object} - an object with the user information or null if not found
      */
     getInfoFromCustom(searchType, value) {
-        const user = this.users.find(u => u[searchType] === value);
-        if (!user) return null;
-        return user
+        try {
+            const user = this.users.find(u => u[searchType] === value);
+            if (!user) return null;
+            return user
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
     /**
      * Verifies a JWT token and returns the user information if the token is valid
@@ -209,10 +229,15 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async verifyToken(token) {
-        if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
-            let jwt_token = jwt.decode(token);
-            let user = await this.getInfoFromUser(jwt_token._id)
-            return (user.jwt_version === jwt_token.version) ? this.getInfoFromUser(jwt_token._id) : false;
+        try {
+            if (jwt.verify(token, this.JWT_SECRET_KEY, this.JWT_OPTIONS)) {
+                let jwt_token = jwt.decode(token);
+                let user = await this.getInfoFromUser(jwt_token._id)
+                return (user.jwt_version === jwt_token.version) ? this.getInfoFromUser(jwt_token._id) : false;
+            }
+        } catch (error) {
+            console.error(error)
+            return undefined
         }
     }
     /**
@@ -222,16 +247,20 @@ class Authenticator {
      * @returns {boolean} - true if the code is valid, false otherwise
      */
     async verify2FA(userId, twofactorcode) {
-        let user = this.users.find(user => user._id === userId)
-        if (!user) return null
-        const verified = speakeasy.totp.verify({
-            secret: user.secret2FA,
-            encoding: this.OTP_ENCODING,
-            token: twofactorcode,
-            window: this.OTP_WINDOW
-        });
-        return verified;
-
+        try {
+            let user = this.users.find(user => user._id === userId)
+            if (!user) return null
+            const verified = speakeasy.totp.verify({
+                secret: user.secret2FA,
+                encoding: this.OTP_ENCODING,
+                token: twofactorcode,
+                window: this.OTP_WINDOW
+            });
+            return verified;
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
     /**
      * Resets the password of a user
@@ -241,17 +270,22 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async resetPassword(userId, newPassword) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        user.password = await bcrypt.hash(newPassword, this.rounds);
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        if (userIndex !== -1) {
-            this.users[userIndex].password = user.password;
-            this.users[userIndex].jwt_version += 1
-        }
-        this.users.push()
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            user.password = await bcrypt.hash(newPassword, this.rounds);
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex].password = user.password;
+                this.users[userIndex].jwt_version += 1
+            }
+            this.users.push()
 
-        return user;
+            return user;
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
     /**
      * Changes the number of login attempts for a user
@@ -261,15 +295,20 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async changeLoginAttempts(userId, attempts) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        if (userIndex !== -1) {
-            this.users[userIndex].loginAttempts = attempts;
-        }
-        this.users.push()
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex].loginAttempts = attempts;
+            }
+            this.users.push()
 
-        return user;
+            return user;
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
     /**
      * Locks a user from logging in
@@ -278,15 +317,20 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async lockUser(userId) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        if (userIndex !== -1) {
-            this.users[userIndex].locked = true;
-        }
-        this.users.push()
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex].locked = true;
+            }
+            this.users.push()
 
-        return user;
+            return user;
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
     }
     /**
      * Unlocks a user from logging in
@@ -295,14 +339,19 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async unlockUser(userId) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        if (userIndex !== -1) {
-            this.users[userIndex].locked = false;
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex].locked = false;
+            }
+            this.users.push()
+            return user;
+        } catch (error) {
+            console.error(error)
+            return undefined
         }
-        this.users.push()
-        return user;
     }
     /**
      * Revokes all user tokens for a user
@@ -311,11 +360,16 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async revokeUserTokens(userId) {
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        if (userIndex !== -1) {
-            this.users[userIndex].jwt_version += 1;
+        try {
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex].jwt_version += 1;
+            }
+            this.users.push()
+        } catch (error) {
+            console.error(error)
+            return undefined
         }
-        this.users.push()
 
 
     }
@@ -326,20 +380,26 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async remove2FA(userId) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        if (userIndex !== -1) {
-            this.users[userIndex].wants2FA = false;
-            user.wants2FA = false
-            this.users[userIndex].secret2FA = "";
-            user.secret2FA = false
-            this.users[userIndex].qrCode = "";
-            user.qrCode = false
-        }
-        this.users.push()
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex].wants2FA = false;
+                user.wants2FA = false
+                this.users[userIndex].secret2FA = "";
+                user.secret2FA = false
+                this.users[userIndex].qrCode = "";
+                user.qrCode = false
+            }
+            this.users.push()
 
-        return user;
+            return user;
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
+
     }
     /**
      * Adds 2FA for a user
@@ -348,26 +408,32 @@ class Authenticator {
      * @throws {Error} - any error that occurs during the process
      */
     async add2FA(userId) {
-        const user = this.users.find(u => u._id === userId);
-        if (!user) return null;
-        const userIndex = this.users.findIndex(u => u._id === userId);
-        const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
-        const otpauth_url = speakeasy.otpauthURL({
-            secret: secret.base32,
-            label: this.QR_LABEL,
-            encoding: this.OTP_ENCODING
-        });
-        const qrCode = await QRCode.toDataURL(otpauth_url);
-        if (userIndex !== -1) {
-            this.users[userIndex].wants2FA = true;
-            user.wants2FA = true
-            this.users[userIndex].secret2FA = secret.base32;
-            user.secret2FA = secret.base32
-            user.qrCode = qrCode
+        try {
+            const user = this.users.find(u => u._id === userId);
+            if (!user) return null;
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            const secret = speakeasy.generateSecret({ name: this.QR_LABEL });
+            const otpauth_url = speakeasy.otpauthURL({
+                secret: secret.base32,
+                label: this.QR_LABEL,
+                encoding: this.OTP_ENCODING
+            });
+            const qrCode = await QRCode.toDataURL(otpauth_url);
+            if (userIndex !== -1) {
+                this.users[userIndex].wants2FA = true;
+                user.wants2FA = true
+                this.users[userIndex].secret2FA = secret.base32;
+                user.secret2FA = secret.base32
+                user.qrCode = qrCode
+            }
+            this.users.push()
+            return user;
+        } catch (error) {
+            console.error(error)
+            return undefined
         }
-        this.users.push()
 
-        return user;
+
     }
     /**
      * Removes a user from the database
@@ -405,33 +471,24 @@ class Authenticator {
 
     /**
      * Verifies if a request is authenticated
-     * @param {object} req - the Express request object
-     * @returns {boolean} - true if the request is authenticated, otherwise false
+     * @param {object} token - the JWT token from the user
+     * @returns {boolean} - true if the token is valid, otherwise false
      * @throws {Error} - any error that occurs during the process
      */
-    async isAuthenticated(req) {
+    async isAuthenticated(token) {
+        if (!token) {
+            return false;
+        }
         try {
-            const rawCookies = req.headers.cookie || '';
-            const cookies = {};
-            rawCookies.split(';').forEach(cookie => {
-                const [key, value] = cookie.trim().split('=');
-                cookies[key] = decodeURIComponent(value);
-            });
-
-            const token = cookies.token;
-            console.log(token)
             let user = await this.verifyToken(token)
-            console.log(user)
-            if (!token) {
-                return false;
-            }
+
             if (!user) {
                 return false;
             }
-            req.user = user;
-            return true
+            return user
         } catch (err) {
-            console.log(err)
+            console.error(err)
+            return false
         }
     }
 

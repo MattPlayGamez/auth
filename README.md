@@ -138,8 +138,8 @@ Revokes all existing JWT token for that user
 ### `removeUser(userId)`
 Removes a user.
 
-### `isAuthenticated(req)`
-Checks if a user is authenticated using the token from the cookies from the request and provides the user as req.user
+### `isAuthenticated(token)`
+Checks if a user is authenticated using the token and it provides the user
 
 ## Example
 Encrypted File
@@ -202,15 +202,17 @@ await auth.revokeUserTokens(userId)
 ```
 Check authentication
 ```javascript
-await Auth.isAuthenticated(req)
-if (isAuth) // do something
+const user = await Auth.isAuthenticated(token)
+if (user) // do something
 ```
 
 middleware to check authentication
 ```javascript
 const checkAuth = async (req, res,next) => {
-    let isAuth = await Auth.isAuthenticated(req)
-    if (!isAuth) return res.redirect('/login')
+    let token = req.cookies.token
+    let user = await Auth.isAuthenticated(token)
+    if (!user) return res.redirect('/login')
+    req.user = user
     next()
 }
 ```
@@ -232,10 +234,6 @@ let connectionString = "CONNECTIONSTRING" // The connection string for MongoDB
 const auth = new Authenticator('MyApp', 12, 'your_jwt_secret', { expiresIn: '1 ' }, 5, connectionString, DB_SCHEMA);
 
 ```
-
-## License
-
-Mozilla Public License, v. 2.0
 
 ## Contributing
 
