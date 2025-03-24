@@ -23,7 +23,7 @@ class Authenticator {
         mongoose.connect(MONGODB_CONNECTION_STRING);
         this.User = mongoose.model('User', userSchema)
         this.OTP_ENCODING = 'base32'
-        this.lockedText = "User is locked"
+        this.LOCKED_TEXT = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
         this.REMOVED_USER_TEXT = "User has been removed"
@@ -31,6 +31,8 @@ class Authenticator {
         this.USERNAME_ALREADY_EXISTS_TEXT = "This username already exists"
         this.EMAIL_ALREADY_EXISTS_TEXT = "This email already exists"
         this.USERNAME_IS_REQUIRED = "Username is required"
+        this.PASSWORD_IS_REQUIRED = "Password is required"
+        this.INVALID_CREDENTIALS_TEXT = "Invalid credentials"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
     }
 
@@ -45,6 +47,7 @@ class Authenticator {
         try {
 
             if (!userObject.username) return this.USERNAME_IS_REQUIRED
+            if (!userObject.password) return this.PASSWORD_IS_REQUIRED
             const existingUser = await this.User.findOne({ username: userObject.username });
             if (existingUser) return this.USERNAME_ALREADY_EXISTS_TEXT
             const hash = await bcrypt.hashSync(userObject.password, this.rounds);
@@ -78,7 +81,7 @@ class Authenticator {
                 return this.USER_ALREADY_EXISTS_TEXT;
             }
             console.log(err);
-            throw err;
+            return undefined
         }
     }
 
@@ -92,30 +95,29 @@ class Authenticator {
      */
     async login(username, password, twoFactorCode) {
         try {
+            if (!username) return this.USERNAME_IS_REQUIRED;
+            if (!password) return this.PASSWORD_IS_REQUIRED;
 
-            const user = await this.User.findOne({ username: username });
-            if (!user) return null;
-
-            const result = await bcrypt.compare(password, user.password);
+            const account = await this.User.findOne({ username: username });
+            if (!account) return null;
+            if (account.locked) return this.LOCKED_TEXT
+            
+            const result = await bcrypt.compare(password, account.password);
             if (!result) {
 
-                if (user.loginAttempts >= this.maxLoginAttempts) {
-
-                    this.lockUser(user._id);
+                if (account.loginAttempts >= this.maxLoginAttempts) {
+                    await this.lockUser(account._id)
+                    return this.LOCKED_TEXT
                 } else {
-                    let newAttempts = user.loginAttempts + 1
-                    await this.changeLoginAttempts(user._id, newAttempts);
+                    await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
+                    return this.INVALID_CREDENTIALS_TEXT
                 }
-                return null;
             }
-            ;
-            if (user) {
-                if (user.locked) return this.lockedText
-                if (user.wants2FA) {
+            if (account) {
+                if (account.wants2FA) {
                     if (twoFactorCode === undefined) {
-                        // Genereer QR-code voor de eerste respons
                         const otpauth_url = speakeasy.otpauthURL({
-                            secret: user.secret2FA,
+                            secret: account.secret2FA,
                             label: this.QR_LABEL,
                             encoding: this.OTP_ENCODING
                         });
@@ -124,7 +126,7 @@ class Authenticator {
                     }
 
                     const verified = speakeasy.totp.verify({
-                        secret: user.secret2FA,
+                        secret: account.secret2FA,
                         encoding: this.OTP_ENCODING,
                         token: twoFactorCode,
                         window: this.OTP_WINDOW
@@ -133,14 +135,14 @@ class Authenticator {
 
                 }
                 const jwt_token = jwt.sign({
-                    _id: user._id,
-                    version: user.jwt_version
+                    _id: account._id,
+                    version: account.jwt_version
                 }, this.JWT_SECRET_KEY, this.JWT_OPTIONS);
 
-                this.changeLoginAttempts(user._id, 0)
-                console.log({ ...user.toObject(), jwt_token })
+                this.changeLoginAttempts(account._id, 0)
+                console.log({ ...account.toObject(), jwt_token })
 
-                return { ...user.toObject(), jwt_token };
+                return { ...account.toObject(), jwt_token };
             }
         } catch (err) {
             throw err;
@@ -160,7 +162,7 @@ class Authenticator {
         try {
 
             let emailCode = Crypto.randomUUID()
-            if (await this.User.findOne({ email: email }).locked) return this.lockedText
+            if (await this.User.findOne({ email: email }).locked) return this.LOCKED_TEXT
             await this.User.findOneAndUpdate({ email: email }, { emailCode: emailCode })
             return { emailCode }
 
@@ -323,6 +325,7 @@ class Authenticator {
      */
     async unlockUser(userId) {
         try {
+            await this.User.findOneAndUpdate({ _id: userId }, { loginAttempts: 0 }, { new: true });
             return await this.User.findOneAndUpdate({ _id: userId }, { locked: false }, { new: true });
         } catch (error) {
             console.error(error)

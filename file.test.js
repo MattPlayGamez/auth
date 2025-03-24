@@ -97,7 +97,7 @@ describe('Authenticator Class Tests', () => {
 
     test('Login with incorrect password', async () => {
         const result = await authenticator.login(mockUser.username, 'wrongpassword');
-        expect(result).toBe(null);
+        expect(result).toBe("Invalid credentials");
     });
 
     test('Get Info From User', async () => {
@@ -139,25 +139,22 @@ describe('Authenticator Class Tests', () => {
         await authenticator.changeLoginAttempts(userID, 0)
     })
 
-    test('Lock user', async () => {
+    test('Lock User', async () => {
         let result = await authenticator.lockUser(userID)
         expect(result.locked).toBe(true);
     })
 
-    test('Unlock user after max login attempt', async () => {
+    test('Unlock User', async () => {
         const resp = await authenticator.unlockUser(userID)
         expect(resp.locked).toBe(false);
     })
 
-    test('Lock user after max login attempts', async () => {
+    test('Lock User after max login attempts', async () => {
+        authenticator.maxLoginAttempts = 2
         await authenticator.login(mockUser.username, 'wrongpassword');
         await authenticator.login(mockUser.username, 'wrongpassword');
         const result = await authenticator.login(mockUser.username, 'wrongpassword');
-        if (result === 'User is locked') {
-            expect(result).toBe('User is locked');
-        } else {
-            expect(result).toBeNull();
-        }
+        expect(result).toBe(authenticator.LOCKED_TEXT);
         await authenticator.unlockUser(userID)
     });
 

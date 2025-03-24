@@ -17,18 +17,19 @@ class Authenticator {
         this.JWT_SECRET_KEY = "changeme";
         this.JWT_OPTIONS = { expiresIn: "1h" };
         this.maxLoginAttempts = 3
-        this.maxLoginAttempts = this.maxLoginAttempts - 2;
         this.DB_FILE_PATH = "./users.db"
         this.DB_PASSWORD = "changeme"
         this.users = []
         this.OTP_ENCODING = 'base32'
-        this.lockedText = "User is locked"
+        this.LOCKED_TEXT = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
         this.INVALID_2FA_CODE_TEXT = "Invalid 2FA code"
         this.REMOVED_USER_TEXT = "User has been removed"
         this.USERNAME_ALREADY_EXISTS_TEXT = "This username already exists"
         this.EMAIL_ALREADY_EXISTS_TEXT = "This email already exists"
         this.USERNAME_IS_REQUIRED = "Username is required"
+        this.PASSWORD_IS_REQUIRED = "Password is required"
+        this.INVALID_CREDENTIALS_TEXT = "Invalid credentials"
         this.ALLOW_DB_DUMP = false // Allowing DB Dumping is disabled by default can be enabled by setting ALLOW_DB_DUMP to true after initializing your class
 
 
@@ -101,23 +102,27 @@ class Authenticator {
     async login(username, password, twoFactorCode) {
         try {
             const account = this.users.find(u => u.username === username);
-            if (!username) return null;
-            if (!password) return null;
+            if (account.locked) return this.LOCKED_TEXT
+            if(!username) return this.USERNAME_IS_REQUIRED
+            if(!password) return this.PASSWORD_IS_REQUIRED
 
 
             const result = await bcrypt.compare(password, account.password);
 
             if (!result) {
-
-                (account.loginAttempts >= this.maxLoginAttempts) ? await this.lockUser(account.id) : await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
-
-                return null
+                if (account.loginAttempts >= this.maxLoginAttempts) {
+                    await this.lockUser(account._id)
+                    return this.LOCKED_TEXT
+                } else {
+                    await this.changeLoginAttempts(account._id, account.loginAttempts + 1)
+                    return this.INVALID_CREDENTIALS_TEXT
+                }
             }
             if (account) {
-                if (account.locked) return this.lockedText
+                if (account.locked) return this.LOCKED_TEXT
                 if (account.wants2FA) {
                     if (twoFactorCode === undefined) {
-                        return null;
+                        return this.INVALID_2FA_CODE_TEXT
                     }
 
 
@@ -345,6 +350,7 @@ class Authenticator {
             const userIndex = this.users.findIndex(u => u._id === userId);
             if (userIndex !== -1) {
                 this.users[userIndex].locked = false;
+                this.users[userIndex].loginAttempts = 0;
             }
             this.users.push()
             return user;
