@@ -101,7 +101,7 @@ class Authenticator {
             const account = await this.User.findOne({ username: username });
             if (!account) return null;
             if (account.locked) return this.LOCKED_TEXT
-            
+
             const result = await bcrypt.compare(password, account.password);
             if (!result) {
 
@@ -225,6 +225,15 @@ class Authenticator {
             return await this.User.findOne({ [searchType]: value });
         } catch (error) {
             console.error(error)
+        }
+    }
+
+    async setCustomInfo(userId, key, value) {
+        try {
+            return await this.User.findOneAndUpdate({ _id: userId }, { [key]: value }, { new: true });
+        } catch (error) {
+            console.error(error)
+            return undefined
         }
     }
 

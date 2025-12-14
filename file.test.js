@@ -105,8 +105,14 @@ describe('Authenticator Class Tests', () => {
         expect(info.username).toBe(mockUser.username);
     })
 
+    test("Set Custom Info", (async () => {
+        const newValue = "customValue"
+        const updatedUser = await authenticator.setCustomInfo(userID, "customKey", newValue)
+        expect(updatedUser.customKey).toBe(newValue)
+    }))
+
     test('Get Info From Custom Property', async () => {
-        const info = await authenticator.getInfoFromCustom("email", mockUser.email)
+        const info = await authenticator.getInfoFromCustom("customKey", "customValue")
         expect(info.email).toBe(mockUser.email);
     })
 

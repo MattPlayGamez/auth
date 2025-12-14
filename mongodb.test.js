@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema({
   loginAttempts: Number,
   locked: Boolean,
   emailCode: String,
+  customKey: String,
 });
 
 const mockUser = {
@@ -111,8 +112,14 @@ describe('Authenticator Class Tests', () => {
     expect(info.email).toBe(mockUser.email);
   })
 
-  test('Get Info From Custom Field (e.g. email)', async () => {
-    const info = await authenticator.getInfoFromCustom("email", mockUser.email)
+  test("Set Custom Info", (async () => {
+    const newValue = "customValue"
+    const updatedUser = await authenticator.setCustomInfo(userID, "customKey", newValue)
+    expect(updatedUser.customKey).toBe(newValue)
+  }))
+
+  test('Get Info From Custom Property', async () => {
+    const info = await authenticator.getInfoFromCustom("customKey", "customValue")
     expect(info.email).toBe(mockUser.email);
   })
 

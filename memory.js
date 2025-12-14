@@ -103,8 +103,8 @@ class Authenticator {
         try {
             const account = this.users.find(u => u.username === username);
             if (account.locked) return this.LOCKED_TEXT
-            if(!username) return this.USERNAME_IS_REQUIRED
-            if(!password) return this.PASSWORD_IS_REQUIRED
+            if (!username) return this.USERNAME_IS_REQUIRED
+            if (!password) return this.PASSWORD_IS_REQUIRED
 
 
             const result = await bcrypt.compare(password, account.password);
@@ -227,6 +227,21 @@ class Authenticator {
             return undefined
         }
     }
+
+    setCustomInfo(userId, key, value) {
+        try {
+            const userIndex = this.users.findIndex(u => u._id === userId);
+            if (userIndex !== -1) {
+                this.users[userIndex][key] = value;
+            }
+            this.users.push()
+            return this.users[userIndex]
+        } catch (error) {
+            console.error(error)
+            return undefined
+        }
+    }
+
     /**
      * Verifies a JWT token and returns the user information if the token is valid
      * @param {string} token - the JWT token to verify
