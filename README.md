@@ -145,15 +145,7 @@ Checks if a user is authenticated using the token and it provides the user
 Encrypted File
 ```javascript
 const Authenticator = require('seamless-auth/file.js');
-const auth = new Authenticator(
-    'MyApp',
-    12,
-    'my_secret_key',
-    { expiresIn: '1h' },
-    5,
-    './users.db',
-    'db_password'
-);
+const auth = new Authenticator();
 
 ```
 Memory storage (ephemeral)
@@ -161,27 +153,13 @@ Memory storage (ephemeral)
 ```javascript
 import Authenticator from 'seamless-auth/memory'
 let USERS = [] // If you want to have existing users, add here
-const auth = new Authenticator(
-    'MyApp',
-    12,
-    'your_jwt_secret',
-    { expiresIn: '1h' },
-    5,
-    USERS
-);
+const auth = new Authenticator()
+auth.USERS = USERS;
 ```
 
 ```javascript
 const Authenticator = require('seamless-auth/file');
-const auth = new Authenticator(
-'MyApp',
-12,
-'your_jwt_secret',
-{ expiresIn: '1h' },
-5,
-'./users.db',
-'db_password'
-);
+const auth = new Authenticator();
 // Register a new user
 const registerResult = await auth.register({
     email: 'user@example.com',
@@ -230,8 +208,8 @@ let DB_SCHEMA = {
 }
 
 
-let connectionString = "CONNECTIONSTRING" // The connection string for MongoDB
-const auth = new Authenticator('MyApp', 12, 'your_jwt_secret', { expiresIn: '1 ' }, 5, connectionString, DB_SCHEMA);
+let connectionString = "CONNECTION_STRING" // The connection string for MongoDB
+const auth = new Authenticator(connectionString, DB_SCHEMA);
 
 ```
 
