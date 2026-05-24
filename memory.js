@@ -19,7 +19,7 @@ class Authenticator {
         this.maxLoginAttempts = 3
         this.DB_FILE_PATH = "./users.db"
         this.DB_PASSWORD = "changeme"
-        this.USERS = []
+        this.users = []
         this.OTP_ENCODING = 'base32'
         this.LOCKED_TEXT = "User is locked"
         this.OTP_WINDOW = 1 // How many OTP codes can be used before and after the current one (usefull for slower people, recommended 1)
